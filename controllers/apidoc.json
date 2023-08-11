@@ -1,0 +1,16 @@
+{
+    "name": "TMS",
+    "version": "2.0.0",
+    "description": "integracion tms",
+    "title": "",
+    "url": "",
+    "sampleUrl": "http://localhost/integracion",
+    "order": [
+        "CrearViaje",
+        "EditarViaje",
+        "AnularViaje",
+        "CrearParadas",
+        "EditarParadas",
+        "EliminarParadas"
+    ]
+}
