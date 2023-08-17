@@ -2,6 +2,8 @@
 
 $params = require __DIR__ . '/params.php';
 $db = require __DIR__ . '/db.php';
+$db_interandinos_pre = require __DIR__ . '/dbs/db_interandinos_pre.php';
+$db_interandinos_qa = require __DIR__ . '/dbs/db_interandinos_qa.php';
 
 $config = [
     'id' => 'tms',
@@ -47,6 +49,8 @@ $config = [
             ],
         ],
         'db' => $db,
+        "db_interandinos_pre" => $db_interandinos_pre,
+        "db_interandinos_qa" => $db_interandinos_qa,
         'urlManager' => [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
