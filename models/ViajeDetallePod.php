@@ -9,8 +9,6 @@ use Yii;
  *
  * @property int $id
  * @property int $viaje_detalle_id
- * @property string $firma
- * @property string $fotos
  * @property string $nombre_firma
  * @property string|null $rut_firma
  * @property string|null $empresa_firma
@@ -38,12 +36,11 @@ class ViajeDetallePod extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['viaje_detalle_id', 'firma', 'fotos', 'nombre_firma', 'estatus_pod_id'], 'required'],
+            [['viaje_detalle_id', 'nombre_firma', 'estatus_pod_id'], 'required'],
             [['viaje_detalle_id', 'estatus_pod_id'], 'default', 'value' => null],
             [['viaje_detalle_id', 'estatus_pod_id'], 'integer'],
-            [['fotos'], 'string'],
             [['fecha_creado', 'fecha_edicion', 'fecha_borrado'], 'safe'],
-            [['firma', 'nombre_firma', 'rut_firma', 'empresa_firma'], 'string', 'max' => 255],
+            [['nombre_firma', 'rut_firma', 'empresa_firma'], 'string', 'max' => 255],
             [['estatus_pod_id'], 'exist', 'skipOnError' => true, 'targetClass' => EstatusPod::className(), 'targetAttribute' => ['estatus_pod_id' => 'id']],
             [['viaje_detalle_id'], 'exist', 'skipOnError' => true, 'targetClass' => ViajeDetalle::className(), 'targetAttribute' => ['viaje_detalle_id' => 'id']],
         ];
@@ -57,8 +54,6 @@ class ViajeDetallePod extends \yii\db\ActiveRecord
         return [
             'id' => 'ID',
             'viaje_detalle_id' => 'Viaje Detalle ID',
-            'firma' => 'Firma',
-            'fotos' => 'Fotos',
             'nombre_firma' => 'Nombre Firma',
             'rut_firma' => 'Rut Firma',
             'empresa_firma' => 'Empresa Firma',

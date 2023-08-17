@@ -50,6 +50,7 @@ use app\models\RendicionCategoria;
 use app\models\ViajeDetalleAccion;
 use app\models\ViajeDetalleRampla;
 use app\models\ConfiguracionGlobal;
+use app\models\ViajeDetallePodDetalle;
 use app\models\ViajesCamposOpcionales;
 use app\models\PrefacturaServicioAdicional;
 use app\models\PrefacturaDocumentosReferencia;
@@ -3911,6 +3912,7 @@ class IntegracionController extends Controller{
         // agregar POD
             public function actionAgregarpod(){
 
+                $transaction = $db->beginTransaction();
                 try {
                     $this->cabecerasPOST();
             
@@ -3945,7 +3947,7 @@ class IntegracionController extends Controller{
                         $_nombreFirma = isset($data->nombre_firma) ? $data->nombre_firma : null;
                         $_rutFirma = isset($data->rut_firma) ? $data->rut_firma : null;
                         $_empresaFirma = isset($data->empresa_firma) ? $data->empresa_firma : null;
-                        $_firma = isset($data->firma) ? $data->firma : null;
+                        // $_firma = isset($data->firma) ? $data->firma : null;
                         $_estatusPod = isset($data->estatus_pod) ? $data->estatus_pod : null;
                         $_subdominio = isset($data->subdominio) ? $data->subdominio : null;
             
@@ -3990,51 +3992,34 @@ class IntegracionController extends Controller{
                         return $this->sendRequest(400, "error", $error, [$error], []);
                     }
     
-    
+                    
+                    
                     $viajeID = $_idViaje;
-                    //  validar fotos
     
-                        
-                        $fotos =  '';
-                        
-                        $ii = 0;
-                        
-                        foreach ($_fotos as $fp => $foto) {
-                            //se hace un split a la cadena en , para tomar solo la imagen
-                            $base64_string = explode(",",  $foto);
-            
-                            //se crear una imagen desde el base 64
-                            $foto = imagecreatefromstring(base64_decode($base64_string[1]));
-            
-                            // si el directorio no esta creado se crea
-                            if(!is_dir(Yii::getAlias('@webroot/documentos/viajes/pod/'.$viajeID))) {
-                                // mkdir('web/documentos/viajes/pod/'.$viajeID);
-                                mkdir(Yii::getAlias('@webroot/documentos/viajes/pod/'.$viajeID));
-                            }
-                            
-                            //se guarda el nombre de la imagen
-                            $nombrefoto = 'pod_'.$_idParada.'_'.date("Ymdhis").$ii.'.png';
-                            //se guarda la iamgen en el directorio correspondiente
-                            if (imagepng($foto, Yii::getAlias('@webroot/documentos/viajes/pod/'.$viajeID.'/').$nombrefoto, 9)) {
-                                $fotos .= $nombrefoto.',';
-                            }
-            
-                            $ii++;
-                        }
-                    // fin validar fotos
+
+                    $viajeDetalle = ViajeDetalle::find()->where(["id" => $_idParada, "viaje_id" => $viajeID])->one();
     
+                    $pruebaEntrega = new ViajeDetallePod();
+                    $pruebaEntrega->viaje_detalle_id = $viajeDetalle->id;
+                    $pruebaEntrega->nombre_firma = $_nombreFirma;
+                    $pruebaEntrega->rut_firma = $_rutFirma;
+                    $pruebaEntrega->empresa_firma = $_empresaFirma;
+                    $pruebaEntrega->estatus_pod_id = $_estatusPod;
+                    $pruebaEntrega->fecha_creado = date("Y-m-d H:i:s");
     
-                    // validar firmas
-                        
-                        $firmas = "";
+                    if ($pruebaEntrega->save()) {
     
-                        if(isset($_firma)){
-    
-                            //se hace un split a la cadena en , para tomar solo la imagen
-                            $base64_string = explode(",", $_firma);
-                            
-                            if(isset($base64_string[1])){
-    
+                        // se envio el POD a onesigth
+                        $resPOD = $this->enviarPodOS($viajeID);
+
+                        //  validar fotos
+
+                            $ii = 0;
+                            foreach ($_fotos as $fp => $foto) {
+                                
+                                //se hace un split a la cadena en , para tomar solo la imagen
+                                $base64_string = explode(",",  $foto);
+                
                                 //se crear una imagen desde el base 64
                                 $foto = imagecreatefromstring(base64_decode($base64_string[1]));
                 
@@ -4044,34 +4029,22 @@ class IntegracionController extends Controller{
                                 }
                                 
                                 //se guarda el nombre de la imagen
-                                $nombre = 'firma_'.$_idParada.'_'.date("Ymdhis").'.png';
-                                    
+                                $nombrefoto = 'pod_'.$_idParada.'_'.date("Ymdhis").$ii.'.png';
                                 //se guarda la iamgen en el directorio correspondiente
-                                if (imagepng($foto, Yii::getAlias(Yii::getAlias('@webroot/documentos/viajes/pod/'.$viajeID.'/').$nombre, 9))) {
-                                    $firmas .= $nombre.',';
+                                if (imagepng($foto, Yii::getAlias('@webroot/documentos/viajes/pod/'.$viajeID.'/').$nombrefoto, 9)) {
+
+                                    $viajePodDetalleImagenes = new ViajeDetallePodDetalle();
+    
+                                    $viajePodDetalleImagenes->viaje_detalle_pod_id = $pruebaEntrega->id;
+                                    $viajePodDetalleImagenes->foto = $nombrefoto;
+                                    $viajePodDetalleImagenes->validado = 0;
+                                    $viajePodDetalleImagenes->save();
                                 }
+
+                                $ii++;
                             }
-                                    
-    
-                        }
-                    // fin validar firmas
-    
-                    $viajeDetalle = ViajeDetalle::find()->where(["id" => $_idParada, "viaje_id" => $viajeID])->one();
-    
-                    $pruebaEntrega = new ViajeDetallePod();
-                    $pruebaEntrega->viaje_detalle_id = $viajeDetalle->id;
-                    $pruebaEntrega->nombre_firma = $_nombreFirma;
-                    $pruebaEntrega->rut_firma = $_rutFirma;
-                    $pruebaEntrega->empresa_firma = $_empresaFirma;
-                    $pruebaEntrega->estatus_pod_id = $_estatusPod;
-                    $pruebaEntrega->firma = trim($firmas,',');
-                    $pruebaEntrega->fotos = trim($fotos,',');
-                    $pruebaEntrega->fecha_creado = date("Y-m-d H:i:s");
-    
-                    if ($pruebaEntrega->save()) {
-    
-                        // se envio el POD a onesigth
-                        $resPOD = $this->enviarPodOS($viajeID);
+
+                        // fin validar fotos
     
                         // $resPOD = json_decode($resPOD["respone"], true);
     
@@ -4080,7 +4053,8 @@ class IntegracionController extends Controller{
                         //     $this->insertarLogViajes($viajeID, "{}", "Se agrego POD a OneSight", $viajeDetalle->id)
                         // }
     
-                        //******************************************************** */ insertar log y auditoria                        
+                        //******************************************************** */ insertar log y auditoria    
+                        $transaction->commit();                    
                         return $this->sendRequest(200, "ok", "Se agregó POD con éxito", [], []);
                     }else{
                         // return $pruebaEntrega->getErrors();
@@ -4088,6 +4062,7 @@ class IntegracionController extends Controller{
                         return $this->sendRequest(400, "error", $error, [$error], []);
                     }
                 } catch (\Throwable $th) {
+                    $transaction->rollback();
                     $error = $th->getMessage();
                     return $this->sendRequest(500, "error", "Ha ocurrido un error en el servidor al procesar la solicitud", [$error], []);
                 }
@@ -4163,7 +4138,7 @@ class IntegracionController extends Controller{
                             foreach ($viajeDetalle as $kvd => $vvd) {
                                 $viajeDetalleId[] = $vvd->id;
                             }
-                            $viaje_pod = ViajeDetallePod::find()->where(["IN", "viaje_detalle_id", $viajeDetalleId])->all();
+                            $viaje_pod = ViajeDetallePod::find()->where(["IN", "viaje_detalle_id", $viajeDetalleId])->orderBy(["id" => SORT_ASC])->all();
                             
                             if(count($viaje_pod) > 0){
                                 $datos = [];
@@ -4177,13 +4152,14 @@ class IntegracionController extends Controller{
                                     $viajePod->viaje_detalle_id = $value->viaje_detalle_id;
                                     $viajePod->zona = $value->viajeDetalle->zona->nombre;
                                     
-                                    $fotos = explode(",", $value->fotos);
+                                    $viajePodDetalleImagenes = ViajeDetallePodDetalle::find()->where(["IN", "viaje_detalle_pod_id", $value->id])->orderBy(["id" => SORT_ASC])->all();
                                     $arregloFotos = [];
-                                    foreach ($fotos as $kFotos => $vFotos) {
-                                        $arregloFotos[] = $asignarBD->urlRecursosExternos."documentos/viajes/pod/".$viaje->id."/".$vFotos;
+                                    foreach ($viajePodDetalleImagenes as $kvpdi => $vpdi) {
+                                        $arregloFotos[$kvpdi]["imagen"] = $asignarBD->urlRecursosExternos."documentos/viajes/pod/".$viaje->id."/".$vpdi->foto;
+                                        $arregloFotos[$kvpdi]["estado"] = $vpdi->validado;
                                     }
+
                                     $viajePod->fotos = $arregloFotos;
-                                    $viajePod->firma = $asignarBD->urlRecursosExternos."documentos/viajes/pod/".$viaje->id."/".$value->firma;
                                     $viajePod->nombre_firma = $value->nombre_firma;
                                     $viajePod->rut_firma = $value->rut_firma;
                                     $viajePod->empresa_firma = $value->empresa_firma;
