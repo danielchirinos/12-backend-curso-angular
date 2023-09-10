@@ -31,9 +31,6 @@ use yii\widgets\ActiveForm;
     </style>
   </head>
   <body>
-
-
-
     
       <?php if (Yii::$app->session->hasFlash('success')) { ?>
           

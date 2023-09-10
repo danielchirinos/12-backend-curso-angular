@@ -13,6 +13,7 @@ use yii\web\Controller;
 use app\models\CajaVale;
 use app\models\Clientes;
 use app\models\Usuarios;
+use app\models\ViajePod;
 use app\models\Auditoria;
 use app\models\Documento;
 use app\models\Rendicion;
@@ -41,6 +42,7 @@ use app\models\RendicionMotivo;
 use app\models\SubestatusViaje;
 use app\models\ViajeDatosCarga;
 use app\models\ViajeDetallePod;
+use app\models\ViajePodDetalle;
 use app\models\RendicionDetalle;
 use app\models\ClienteFacturador;
 use app\models\ContratoDocumento;
@@ -90,105 +92,144 @@ class IntegracionController extends Controller{
     }
 
     //login desde app movil
-    public function actionLogin(){
+        public function actionLogin(){
 
-        try {
-            $this->cabecerasPOST();
+            try {
+                $this->cabecerasPOST();
 
-            date_default_timezone_set("America/Santiago");
-            $key = $this->validarKey(getallheaders()["Autorizacion"]);
+                date_default_timezone_set("America/Santiago");
+                $key = $this->validarKey(getallheaders()["Autorizacion"]);
 
-            $respuesta = new stdClass();
-            if ($key != null) {
+                $respuesta = new stdClass();
+                if ($key != null) {
 
-                if ($_POST) {
-                    $error = "Servicio Innacceible";
-                    return $this->sendRequest(405, "error", $error, [$error], []);
-        
-                }else{
-                    $post = file_get_contents('php://input');
-                    $data = json_decode($post);
-        
-                    $_usuario = isset($data->usuario) ? $data->usuario : null;
-                    $_clave = isset($data->clave) ? $data->clave : null;
-                    $_subdominio = isset($data->subdominio) ? $data->subdominio : null;
-                
-                }
-
-                $errores = [];
-
-                if (!isset($_usuario) || $_usuario =="" || $_usuario == null) {
-                    $errores[] = 'El usuario es requerido';
-                }
-                if (!isset($_clave) || $_clave =="" || $_clave == null) {
-                    $errores[] = 'El clave es requerido';
-                }
-                if (!isset($_subdominio) || $_subdominio == "" || $_subdominio == null) {
-                    $errores[] = 'El subdominio es requerido';
-                }
-        
-                if (count($errores) > 0) {
-                    return $this->sendRequest(400, "error", "Campos Requeridos",  $errores, []);
-                }  
-
-                $asignarBD = Yii::$app->bermann->asignarBD($_subdominio);
-                if(!$asignarBD->asignada){
-                    $error = "Subdominio invalido";
-                    return $this->sendRequest(400, "error", $error, [$error], []);
-                }
-
-                
-                $model = Conductores::find()->where(['UPPER(usuario)' => mb_strtoupper($_usuario, "UTF-8")])->orWhere(["telefono" => mb_strtoupper($_usuario, "UTF-8")])->andWhere(['UPPER(clave)'=> mb_strtoupper($_clave, "UTF-8")])->one();
-
-                if ($model != NULL) {
-                    if ($model->estado_conductor == 0) {
-                        $error = "Conductor inactivo para aplicación movil";
-                        return $this->sendRequest(400, "error", $error, [$error], []);
+                    if ($_POST) {
+                        $error = "Servicio Innacceible";
+                        return $this->sendRequest(405, "error", $error, [$error], []);
+            
                     }else{
-
-                        $token = $this->getToken();
-
-                        if ($token) {
-                            if($model->foto == null){
-                                $imagen = '/images/icon_user.svg';
-                            }else{
-                                $imagen = "{$asignarBD->urlRecursosExternos}/images/conductores/{$model->foto}";     
-                            }
-
-                            $data = [
-                                "id_conductor" => $model->id,
-                                "nombre_conductor" => $model->nombre,
-                                "imagen" => $imagen,
-                                "email" => $model->email == null ? "" : $model->email,
-                                "telefono" => $model->telefono == null ? "" : $model->telefono,
-                                "token" => $token["token"],
-                                "token_exp" => $token["exp"]
-                            ];
-
-                            return $this->sendRequest(200, "OK", "Datos entregados", [], $data);
-                            
-                        }else{
-                            $error = "Ocurrio un error al validar el token";
-                            return $this->sendRequest(400, "error", $error, [$error], []);
-                        }
+                        $post = file_get_contents('php://input');
+                        $data = json_decode($post);
+            
+                        $_usuario = isset($data->usuario) ? $data->usuario : null;
+                        $_clave = isset($data->clave) ? $data->clave : null;
+                        $_subdominio = isset($data->subdominio) ? $data->subdominio : null;
+                    
                     }
+
+                    $errores = [];
+
+                    if (!isset($_usuario) || $_usuario =="" || $_usuario == null) {
+                        $errores[] = 'El usuario es requerido';
+                    }
+                    if (!isset($_clave) || $_clave =="" || $_clave == null) {
+                        $errores[] = 'El clave es requerido';
+                    }
+                    if (!isset($_subdominio) || $_subdominio == "" || $_subdominio == null) {
+                        $errores[] = 'El subdominio es requerido';
+                    }
+            
+                    if (count($errores) > 0) {
+                        return $this->sendRequest(400, "error", "Campos Requeridos",  $errores, []);
+                    }  
+
+                    $asignarBD = Yii::$app->bermann->asignarBD($_subdominio);
+                    if(!$asignarBD->asignada){
+                        $error = "Subdominio invalido";
+                        return $this->sendRequest(400, "error", $error, [$error], []);
+                    }
+
+                    
+                    $model = Conductores::find()->where(['UPPER(usuario)' => mb_strtoupper($_usuario, "UTF-8")])->orWhere(["telefono" => mb_strtoupper($_usuario, "UTF-8")])->andWhere(['UPPER(clave)'=> mb_strtoupper($_clave, "UTF-8")])->one();
+
+                    if ($model != NULL) {
+                        if ($model->estado_conductor == 0) {
+                            $error = "Conductor inactivo para aplicación movil";
+                            return $this->sendRequest(400, "error", $error, [$error], []);
+                        }else{
+
+                            $token = $this->getToken(60); //crea un token con 1 hora de vigencia
+                            $tokenRefresh = $this->getToken(300); //crea un token con 5 hora de vigencia
+
+                            if ($token) {
+                                if($model->foto == null){
+                                    $imagen = '/images/icon_user.svg';
+                                }else{
+                                    $imagen = "{$asignarBD->urlRecursosExternos}/images/conductores/{$model->foto}";     
+                                }
+
+                                $data = [
+                                    "id_conductor" => $model->id,
+                                    "nombre_conductor" => $model->nombre,
+                                    "imagen" => $imagen,
+                                    "email" => $model->email == null ? "" : $model->email,
+                                    "telefono" => $model->telefono == null ? "" : $model->telefono,
+                                    "token" => $token["token"],
+                                    // "token_exp" => $token["exp"],
+                                    "token_refresh" => $tokenRefresh["token"],
+                                    // "token_refresh_exp" => $tokenRefresh["exp"],
+                                ];
+
+                                return $this->sendRequest(200, "OK", "Datos entregados", [], $data);
+                                
+                            }else{
+                                $error = "Ocurrio un error al validar el token";
+                                return $this->sendRequest(400, "error", $error, [$error], []);
+                            }
+                        }
+                    }else{
+                        $error = "No existen conductores con los datos ingresados";
+                        return $this->sendRequest(400, "error", $error, [$error], []);
+                    }
+
+
                 }else{
-                    $error = "No existen conductores con los datos ingresados";
+                    $error = "API_KEY invalida";
                     return $this->sendRequest(400, "error", $error, [$error], []);
                 }
-
-
-            }else{
-                $error = "API_KEY invalida";
-                return $this->sendRequest(400, "error", $error, [$error], []);
+            } catch (\Throwable $th) {
+                $error = $th->getMessage();
+                return $this->sendRequest(500, "error", "Ha ocurrido un error en el servidor al procesar la solicitud", [$error], []);
             }
-        } catch (\Throwable $th) {
-            $error = $th->getMessage();
-            return $this->sendRequest(500, "error", "Ha ocurrido un error en el servidor al procesar la solicitud", [$error], []);
         }
 
-        
-    }
+        public function actionRefreshtoken(){
+            try {
+                $this->cabecerasGET();
+
+                date_default_timezone_set("America/Santiago");
+
+                if (isset(getallheaders()["Authorization"])) {
+                    $token = getallheaders()["Authorization"];
+                    $decodeToken = $this->decodeToken($token);
+                    if($decodeToken->estado != "ok"){
+                        return $decodeToken;
+                    }
+                }else{
+                    return $this->sendRequest(401, "error", "Token Invalido", ["token invalido"], $data);
+                }
+
+                $respuesta = new stdClass();
+                $token = $this->getToken(60); //crea un token con 1 hora de vigencia
+                $tokenRefresh = $this->getToken(300); //crea un token con 5 hora de vigencia
+
+                if ($token) {
+                    $data = [
+                        "token" => $token["token"],
+                        "token_refresh" => $tokenRefresh["token"],
+                    ];
+
+                    return $this->sendRequest(200, "OK", "Datos entregados", [], $data);
+                    
+                }else{
+                    $error = "Ocurrio un error al actualizar los token";
+                    return $this->sendRequest(400, "error", $error, [$error], []);
+                }
+            } catch (\Throwable $th) {
+                $error = $th->getMessage();
+                return $this->sendRequest(500, "error", "Ha ocurrido un error en el servidor al procesar la solicitud", [$error], []);
+            }
+        }
     //fin login desde app movil
 
     //valida patente y subdominio ingresados manualmente o por QR
@@ -265,1746 +306,8 @@ class IntegracionController extends Controller{
 
 
     // /////////////////////////////////////////////////// VIAJES ////////////////////////////////////////////
-        //creacion viajes
-            public function actionCrearviaje(){
-
-                $token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiIwMmM5NTMzMS0zZDFkLTQxM2UtYjdhZC1kYzUzMTRmNGFmNTkiLCJpc3MiOiJodHRwczovL2xvZ2luLm1pY3Jvc29mdG9ubGluZS5jb20vNjIwYTg5MGUtNjBjZi00ZjJkLWE0YTAtZDUyOWY3MjUzNTkxL3YyLjAiLCJpYXQiOjE2NzE1NjUzNDgsIm5iZiI6MTY3MTU2NTM0OCwiZXhwIjoxNjcxNTY5MjQ4LCJhaW8iOiJBVFFBeS84VEFBQUF3c3M0QWdKNm9YcFBIblMvcE9ET2R6Vy9lQkNvdnBJSUU0a09WSWEzNGNvWVFSQlI5T2k4bktzNTNDVEpJYUdLIiwibm9uY2UiOiJmdWxsdHJ1Y2tfZHljX3RtcyIsInJoIjoiMC5BUVlBRG9rS1lzOWdMVS1rb05VcDl5VTFrVEZUeVFJZFBUNUJ0NjNjVXhUMHIxa0dBRE0uIiwic3ViIjoiMUlVUXZYNWk2MXdPbWY3UjVRRG1aNGRXY29tWUFYTnpYcFFCamtJSDFrOCIsInRpZCI6IjYyMGE4OTBlLTYwY2YtNGYyZC1hNGEwLWQ1MjlmNzI1MzU5MSIsInV0aSI6ImJrM0RMdVpQVGtPbjZiZnFFb3UxQUEiLCJ2ZXIiOiIyLjAifQ.DlfsPu2RgDuJjIvSGOBUVfRKkN3x0vjpaQCxCXLajaHgFtX2UZBeITgh0Cf4vGtF_XbOG7xASUQZwsVFMOuiE_IxV5OHR_RrZ63jR5lv_aFxJBV75LAgBe1t2taLp9eYuaEXy4-aqtdO4Zg-3kZ75nVYjEoID_K6iAJ_At0ULqoikXIJHNxhkGUKegix7OGw34iRmnaHiMtQV4lM0MoZOMEBRuQI9ImgvoUQrKbkfEsnuzIA7DqEsBTC4E6btnxvEWCCwITzqPD-qAD7EdPDcJazkwsSws3sr9_U6Z8RxKB4pevWoFauCTbe217bTWWUpLxZhvWuoQMmtI3B8Xg20g";
-
-                $asd = $this->decodeToken($token); 
-
-                echo "<pre>";
-                var_dump($asd);
-                exit;
-
-                    
-                date_default_timezone_set("America/Santiago");
-                $key = $this->validarKey(getallheaders()["Autorizacion"]);
-            
-            
-                $respuesta = new stdClass();
-                if ($key != null) {
-                    
-                    if ($_POST) {
-
-                        $_nroViaje = isset($_POST["nro_viaje"]) ? $_POST["nro_viaje"] : null ;
-                        $_tipoOperacion = isset($_POST["tipo_operacion"]) ? $_POST["tipo_operacion"] : null ;
-                        $_tipoServicio = isset($_POST["tipo_servicio"]) ? $_POST["tipo_servicio"] : null;
-                        $_rut  = isset($_POST["rut"]) ? $_POST["rut"] : null;
-                        $_cliente  = isset($_POST["cliente"]) ? $_POST["cliente"] : null;
-                        $_tipoCargaNombre  = isset($_POST["tipo_carga_nombre"]) ? $_POST["tipo_carga_nombre"] : null;
-                        $_tipoCargaCodigo  = isset($_POST["tipo_carga_codigo"]) ? $_POST["tipo_carga_codigo"] : null;
-                        
-                        $_transportistaRut  = isset($_POST["transportista_rut"]) ? $_POST["transportista_rut"] : null;
-                        $_transportistaNombre  = isset($_POST["transportista_nombre"]) ? $_POST["transportista_nombre"] : null;
-                        $_conductorUnoRut  = isset($_POST["conductor_uno_rut"]) ? $_POST["conductor_uno_rut"] : null;
-                        $_conductorUnoNombre  = isset($_POST["conductor_uno_nombre"]) ? $_POST["conductor_uno_nombre"] : null;
-                        $_conductorDosRut = isset($_POST["conductor_dos_rut"]) ? $_POST["conductor_dos_rut"] : null;
-                        $_conductorDosNombre  = isset($_POST["conductor_dos_nombre"]) ? $_POST["conductor_dos_nombre"] : null;
-                        $_vehiculoUno = isset($_POST["vehiculo_uno"]) ? $_POST["vehiculo_uno"] : null;
-                        $_vehiculoDos  = isset($_POST["vehiculo_dos"]) ? $_POST["vehiculo_dos"] : null;
-                        
-
-                        $_poligonoOrigen  = isset($_POST["poligono_origen"]) ? $_POST["poligono_origen"] : null ;
-                        $_comunaOrigen  = isset($_POST["comuna_origen"]) ? $_POST["comuna_origen"] : null ;
-                        
-                        
-                        $_fechaEntradaOrigen  = isset($_POST["fecha_entrada_origen"]) ? $_POST["fecha_entrada_origen"] : null ;
-                        $_fechaSalidaOrigen = isset($_POST["fecha_salida_origen"]) ? $_POST["fecha_salida_origen"] : null ;
-                        $_destinoId  = isset($_POST["destino_id"]) ? $_POST["destino_id"] : null;
-                        $_poligonoDestino  = isset($_POST["poligono_destino"]) ? $_POST["poligono_destino"] : null ;
-                        $_comunaDestino  = isset($_POST["comuna_destino"]) ? $_POST["comuna_destino"] : null ;
-
-                        $_fechaEntradaDestino  = isset($_POST["fecha_entrada_destino"]) ? $_POST["fecha_entrada_destino"] : null;
-                        $_fechaSalidaDestino = isset($_POST["fecha_salida_destino"]) ? $_POST["fecha_salida_destino"] :  null;
-
-                        $_rutFacturador  = isset($_POST["rut_facturador"]) ? $_POST["rut_facturador"] : null;
-                        $_clienteFacturador  = isset($_POST["cliente_facturador"]) ? $_POST["cliente_facturador"] : null;
-
-                        $_unidadNegocio = isset($_POST["unidad_negocio"]) ? $_POST["unidad_negocio"] : null;
-            
-            
-                    }else{
-                        $post = file_get_contents('php://input');
-                        $data = json_decode($post);
-            
-                        $_nroViaje = isset($data->nro_viaje) ? $data->nro_viaje : null;
-                        $_tipoOperacion = isset($data->tipo_operacion) ? $data->tipo_operacion : null;
-                        $_tipoServicio = isset($data->tipo_servicio) ? $data->tipo_servicio : null;
-                        $_rut  = isset($data->rut) ? $data->rut : null;
-                        $_cliente  = isset($data->cliente) ? $data->cliente : null;
-                        $_tipoCarga  = isset($data->tipo_carga) ? $data->tipo_carga : null;
-                        $_tipoCargaNombre  = isset($data->tipo_carga_nombre) ? $data->tipo_carga_nombre : null;
-                        $_tipoCargaCodigo  = isset($data->tipo_carga_codigo) ? $data->tipo_carga_codigo : null;
-
-                        $_transportistaRut  = isset($data->transportista_rut) ? $data->transportista_rut : null;
-                        $_transportistaNombre  = isset($data->transportista_nombre) ? $data->transportista_nombre : null;
-                        $_conductorUnoRut  = isset($data->conductor_uno_rut) ? $data->conductor_uno_rut : null;
-                        $_conductorUnoNombre  = isset($data->conductor_uno_nombre) ? $data->conductor_uno_nombre : null;
-                        $_conductorDosRut = isset($data->conductor_dos_rut) ? $data->conductor_dos_rut : null;
-                        $_conductorDosNombre  = isset($data->conductor_dos_nombre) ? $data->conductor_dos_nombre : null;
-                        $_vehiculoUno = isset($data->vehiculo_uno) ? $data->vehiculo_uno : null;
-                        $_vehiculoDos  = isset($data->vehiculo_dos) ? $data->vehiculo_dos : null;
-
-                        $_poligonoOrigen  = isset($data->poligono_origen) ? $data->poligono_origen : null;
-                        $_comunaOrigen  = isset($data->comuna_origen) ? $data->comuna_origen : null;
-
-
-                        $_fechaEntradaOrigen  = isset($data->fecha_entrada_origen) ? $data->fecha_entrada_origen : null;
-                        $_fechaSalidaOrigen = isset($data->fecha_salida_origen) ? $data->fecha_salida_origen : null;
-                        $_destinoId  = isset($data->destino_id) ? $data->destino_id : null;
-                        $_poligonoDestino  = isset($data->poligono_destino) ? $data->poligono_destino : null;
-                        $_comunaDestino  =isset($data->comuna_destino) ? $data->comuna_destino : null;
-                        
-                        $_fechaEntradaDestino  = isset($data->fecha_entrada_destino) ? $data->fecha_entrada_destino : null;
-                        $_fechaSalidaDestino = isset($data->fecha_salida_destino) ? $data->fecha_salida_destino : null;
-
-
-                        $_rutFacturador  = isset($data->rut_facturador) ? $data->rut_facturador : null ;
-                        $_clienteFacturador  = isset($data->cliente_facturador) ? $data->cliente_facturador : null ;
-
-                        $_unidadNegocio = isset($data->unidad_negocio) ? $data->unidad_negocio : null ;
-                    }
-
-            
-            
-                //validaciones de requeridos
-                    // $requeridos = ['_tipoServicioId', '_clienteId'];
-                    // $requeridos = ['tipo_servicio_id','cliente_id','origen_id','fecha_entrada_origen','fecha_salida_origen','destino_id','fecha_entrada_destino','fecha_salida_destino'];
-
-
-                    $errores = [];
-                    if (!isset($_nroViaje) || $_nroViaje =="" || $_nroViaje == null) {
-                        $errores[] = 'El campo nro_viaje es requerido';
-                    }
-                    if (!isset($_tipoOperacion) || $_tipoOperacion =="" || $_tipoOperacion == null) {
-                        $errores[] = 'El campo tipo_operacion es requerido';
-                    }
-                    if (!isset($_tipoServicio) || $_tipoServicio =="" || $_tipoServicio == null) {
-                        $errores[] = 'El campo tipo_servicio es requerido';
-                    }
-                    if (!isset($_rut) || $_rut =="" || $_rut == null) {
-                        $errores[] = 'El campo rut es requerido';
-                    }else{
-                        $rutExploide = explode("-", $_rut);
-                        if (strlen($rutExploide[0]) < 7) {
-                            $errores[] = 'El rut del cliente es invalido, debe ser con guión';
-                        }
-                    }
-                    if (!isset($_rutFacturador) || $_rutFacturador =="" || $_rutFacturador == null) {
-                        $errores[] = 'El campo rut_facturador es requerido';
-                    }else{
-                        $rutExploide = explode("-", $_rutFacturador);
-                        if (strlen($rutExploide[0]) < 7) {
-                            $errores[] = 'El rut_facturador del cliente_facturador es invalido, debe ser con guión';
-                        }
-                    }
-                    if (!isset($_cliente) || $_cliente =="" || $_cliente == null) {
-                        $errores[] = 'El campo cliente es requerido';
-                    }
-                    if (!isset($_clienteFacturador) || $_clienteFacturador =="" || $_clienteFacturador == null) {
-                        $errores[] = 'El campo cliente_facturador es requerido';
-                    }
-                    if (!isset($_poligonoOrigen) || $_poligonoOrigen =="" || $_poligonoOrigen == null) {
-                        $errores[] = 'El campo poligono_destino es requerido';
-                    }
-                    // if (!isset($_comunaOrigen) || $_comunaOrigen =="" || $_comunaOrigen == null) {
-                    //     $errores[] = 'El campo comuna_origen es requerido';
-                    // }
-                    if (!isset($_poligonoDestino) || $_poligonoDestino =="" || $_poligonoDestino == null) {
-                        $errores[] = 'El campo poligono_destino es requerido';
-                    }
-                    // if (!isset($_comunaDestino) || $_comunaDestino =="" || $_comunaDestino == null) {
-                    //     $errores[] = 'El campo comuna_destino es requerido';
-                    // }
-                    if (!isset($_unidadNegocio) || $_unidadNegocio =="" || $_unidadNegocio == null) {
-                        $errores[] = 'El campo unidad_negocio es requerido';
-                    }
-
-                    if (!isset($_tipoCargaNombre) || $_tipoCargaNombre =="" || $_tipoCargaNombre == null) {
-                        $errores[] = 'El campo tipo_carga_nombre es requerido';
-                    }
-                    if (!isset($_tipoCargaCodigo) || $_tipoCargaCodigo =="" || $_tipoCargaCodigo == null) {
-                        $errores[] = 'El campo tipo_carga_codigo es requerido';
-                    }
-                    
-                    if (!isset($_transportistaRut) || $_transportistaRut == "" || $_transportistaRut == null) {
-                        $errores[] = 'El campo transportista_rut es requerido';
-                    }else{
-                        $rutExploide = explode("-", $_transportistaRut);
-                        if (strlen($rutExploide[0]) < 7) {
-                            $errores[] = 'El rut del transportista es invalido, debe ser con guión';
-                        }
-                    }
-                    
-                    if (!isset($_transportistaNombre  ) || $_transportistaNombre   =="" || $_transportistaNombre   == null) {
-                        $errores[] = 'El campo transportista_nombre es requerido';
-                    }
-                    
-                    if (!isset($_conductorUnoRut) || $_conductorUnoRut =="" || $_conductorUnoRut == null) {
-                        $errores[] = 'El campo conductor_uno_rut es requerido';
-                    }else{
-                        $rutExploide = explode("-", $_conductorUnoRut);
-                        if (strlen($rutExploide[0]) < 7) {
-                            $errores[] = 'El rut del conductor uno es invalido, debe ser con guión';
-                        }
-                    }
-                    
-                    if (!isset($_conductorUnoNombre  ) || $_conductorUnoNombre   =="" || $_conductorUnoNombre   == null) {
-                        $errores[] = 'El campo conductor_uno_nombre es requerido';
-                    }else{
-                        $conductorExpl = explode(" ", $_conductorUnoNombre);
-                        if (count($conductorExpl) != 2) {
-                            $errores[] = 'Debe ingresar un nombre y un apellido para el conductor uno';
-                        }
-                    }
-
-                    if (!isset($_conductorDosRut) || $_conductorDosRut =="" || $_conductorDosRut == null) {
-                        $errores[] = 'El campo conductor_dos_rut es requerido';
-                    }else{
-                        $rutExploide = explode("-", $_conductorDosRut);
-                        if (strlen($rutExploide[0]) < 7) {
-                            $errores[] = 'El rut del conductor dos es invalido, debe ser con guión';
-                        }
-                    }
-                    
-                    if (!isset($_conductorDosNombre  ) || $_conductorDosNombre   =="" || $_conductorDosNombre   == null) {
-                        $errores[] = 'El campo conductor_dos_nombre es requerido';
-                    }else{
-                        $conductorDosExpl = explode(" ", $_conductorDosNombre);
-                        if (count($conductorDosExpl) != 2) {
-                            $errores[] = 'Debe ingresar un nombre y un apellido para el conductor dos';
-                        }
-                    }
-
-                    if (!isset($_vehiculoUno  ) || $_vehiculoUno   == "" || $_vehiculoUno   == null) {
-                        $errores[] = 'El campo vehiculo_uno es requerido';
-                    }
-
-                    if (!isset($_vehiculoDos  ) || $_vehiculoDos   == "" || $_vehiculoDos   == null) {
-                        $errores[] = 'El campo vehiculo_dos es requerido';
-                    }
-            
-                    if (count($errores) > 0) {
-                        $respuesta->estado = "error";
-                        $respuesta->respuesta = "detalle errores";
-                        $respuesta->mensaje = $errores;
-
-                        return $respuesta;
-                    }
-            
-                //fin validaciones de requeridos
-            
-                    // if ($_POST) {
-                        // validar nro de viaje
-
-                            if ($_nroViaje != "") {
-                                $nroViaje = Viajes::find()->where(["nro_viaje" => $_nroViaje])->one();
-                                if ($nroViaje) {
-                                    $respuesta->estado = "error";
-                                    $respuesta->respuesta = "Nro. de viaje ya existe para otro viaje";
-                                    $respuesta->mensaje = [];
-
-                                    return $respuesta;
-                                }
-                            }
-
-                        // fin validar nro de viaje
-
-                        // validar tipo de operacion
-                            $operacionID = 0;
-                            $servicioId = 0;
-
-
-                            $tipoOperacion = TipoOperacion::find()->where(["upper(nombre)" => strtoupper($_tipoOperacion), "fecha_borrado" => null])->one();
-
-                            if (!$tipoOperacion) {
-                                $operacion = new TipoOperacion();
-                                $operacion->nombre = strtoupper($_tipoOperacion);
-                                $operacion->fecha_creacion = date("Y-m-d H:i:s");
-
-                                if($operacion->save()){
-
-                                    $operacionID = $operacion->id;
-
-                                    // validar tipo de servicio
-                                        $tipoServicio = TipoServicio::find()->where(["upper(nombre)" => strtoupper($_tipoServicio), "tipo_operacion_id" => $operacionID, "fecha_borrado" => null])->one();
-                                        if (!$tipoServicio) {
-                                            $servicio = new TipoServicio();
-                                            $servicio->tipo_operacion_id = $operacionID;
-                                            $servicio->nombre = strtoupper($_tipoServicio);
-
-                                            if($servicio->save()){
-                                                $servicioId = $servicio->id;
-                                            }else{
-                                                $respuesta->estado = "error";
-                                                $respuesta->respuesta = "Error inesperado creando el tipo de servicio";
-                                                $respuesta->mensaje = [];
-                                                return $respuesta;
-
-                                            }
-                                        }else{
-                                            $servicioId = $tipoServicio->id;
-                                        }
-                                    // fin validar tipo de servicio
-
-                                }else{
-                                    $respuesta->estado = "error";
-                                    $respuesta->respuesta = "Error inesperado creando el tipo de operación";
-                                    $respuesta->mensaje = [];
-                                    return $respuesta;
-                                }
-
-                                // return $respuesta;
-                            }else{
-                                $operacionID = $tipoOperacion->id;
-
-                                // validar tipo de servicio
-                                $tipoServicio = TipoServicio::find()->where(["UPPER(nombre)" => strtoupper($_tipoServicio), "tipo_operacion_id" => $operacionID, "fecha_borrado" => null])->one();
-                                if (!$tipoServicio) {
-                                    $servicio = new TipoServicio();
-                                    $servicio->tipo_operacion_id = $operacionID;
-                                    $servicio->nombre = strtoupper($_tipoServicio);
-
-                                    if($servicio->save()){
-                                        $servicioId = $servicio->id;
-                                    }else{
-                                        $respuesta->estado = "error";
-                                        $respuesta->respuesta = "Error inesperado creando el tipo de servicio";
-                                        $respuesta->mensaje = [];
-                                        return $respuesta;
-                                    }
-                                }else{
-                                    $servicioId = $tipoServicio->id;
-                                }
-                            // fin validar tipo de servicio
-                            }
-
-                        // fin validar tipo de operacion
-            
-                        // validar cliente
-
-                            $cliente = Clientes::find()->where(["rut" => $_rut, "fecha_borrado" => null])->one();
-                            $clienteId = 0;
-                            if (!$cliente) {
-                                $nuevoCliente = new Clientes();
-                                $nuevoCliente->rut = $_rut;
-                                $nuevoCliente->nombre = $_cliente;
-                                $nuevoCliente->nombre_fantasia = $_cliente;
-                                $nuevoCliente->comuna_id = 1;
-                                $nuevoCliente->region_id = 1;
-                                $nuevoCliente->ciudad_id = 1;
-                                $nuevoCliente->tipo_cliente_id = 1;
-                                if($nuevoCliente->save()){
-                                    $clienteId = $nuevoCliente->id;
-                                }else{
-                                    $respuesta->estado = "error";
-                                    $respuesta->respuesta = "Error inesperado al crear el cliente.";
-                                    $respuesta->mensaje = [];
-                                    return $respuesta;
-                                }
-                            }else{
-
-                                $clienteId = $cliente->id;
-                            }
-                        // fin validar cliente
-
-                        // validar cliente facturador
-
-                            $clienteFacturador = ClienteFacturador::find()->where(["rut" => $_rutFacturador, "fecha_borrado" => null])->one();
-                            $clienteFacturadorId = 0;
-                            if (!$clienteFacturador) {
-                                $nuevoClienteFacturador = new ClienteFacturador();
-                                $nuevoClienteFacturador->rut = $_rutFacturador;
-                                $nuevoClienteFacturador->nombre = $_clienteFacturador;
-                                $nuevoClienteFacturador->nombre_fantasia = $_clienteFacturador;
-                                $nuevoClienteFacturador->comuna_id = 1;
-                                $nuevoClienteFacturador->region_id = 1;
-                                $nuevoClienteFacturador->ciudad_id = 1;
-                                if($nuevoClienteFacturador->save()){
-                                    $clienteFacturadorId = $nuevoClienteFacturador->id;
-
-                                    $this->insertarAuditoria(43, "Creación de cliente facturador desde API");
-                                }else{
-                                    $respuesta->estado = "error";
-                                    $respuesta->respuesta = "Error inesperado al crear el cliente facturador.";
-                                    $respuesta->mensaje = [];
-                                    return $respuesta;
-                                }
-                            }else{
-
-                                $clienteFacturadorId = $clienteFacturador->id;
-                            }
-                        // fin validar cliente facturador
-            
-                        // validar origen
-                            $direccionOrigen = Zonas::find()->where(["id" => strtoupper($_poligonoOrigen), "fecha_borrado" => null])->one();
-                            if (!$direccionOrigen) {
-                                $respuesta->estado = "error";
-                                $respuesta->respuesta = "El poligono de origen no esta asociada a ninguna zona de TMS";
-                                $respuesta->mensaje = [];
-                                return $respuesta;
-                            }else{
-                                // $cliente_direccion_origen_id = $direccionOrigen->id;
-                                $zonaOrigen = $direccionOrigen->id;
-                            }
-                            
-                        // fin validar origen
-    
-                        // validar fecha hora entrada origen
-            
-                            if (isset($_fechaEntradaOrigen)) {
-                                if ($_fechaEntradaOrigen != "" || $_fechaEntradaOrigen != null) {
-                                    $validarFechaHoraEntradaOrigen = $this->validarFormatoFecha($_fechaEntradaOrigen, "Fecha hora entrada origen");
-                                    if ($validarFechaHoraEntradaOrigen != null) {
-                                        if ($validarFechaHoraEntradaOrigen->estado == "error") {
-                                            return $validarFechaHoraEntradaOrigen;
-                                        }
-                                    }
-                                    $banderaFechaEntradaOrigen = 0;
-                                }
-                            }
-                        // fin validar fecha hora entrada origen
-            
-                        // validar fecha hora salida origen
-                            if (isset($_fechaSalidaOrigen)) {
-                                if ($_fechaSalidaOrigen != "" || $_fechaSalidaOrigen != null) {
-                                    $validarFechaHoraSalidaOrigen = $this->validarFormatoFecha($_fechaSalidaOrigen, "Fecha hora salida origen");
-                                    if ($validarFechaHoraSalidaOrigen != null) {
-                                        if ($validarFechaHoraSalidaOrigen->estado == "error") {
-                                            return $validarFechaHoraSalidaOrigen;
-                                        }
-                                    }
-                                }   
-                            }
-                        //fin validar fecha hora salida origen
-            
-                        //validar hora de entrada menor a hora de salida en origen
-                            if (isset($_fechaEntradaOrigen) && isset($_fechaSalidaOrigen)) {
-                                # code...
-                                if (strtotime($_fechaEntradaOrigen) > strtotime($_fechaSalidaOrigen)) {
-                                    $respuesta->estado = "error";
-                                    $respuesta->respuesta = "Le fecha de entrada en el origen no puede ser mayor a la fecha de salida";
-                                    $respuesta->mensaje = [];
-
-                                    return $respuesta;
-                                }
-                            }
-                        //fin validar hora de entrada menor a hora de salida en origen
-            
-            
-                        // validar destino
-
-                            $direccionDestino = Zonas::find()->where(["id" => $_poligonoDestino, "fecha_borrado" => null])->one();
-                            if (!$direccionDestino) {
-
-                                $respuesta->estado = "error";
-                                $respuesta->respuesta = "La direccion de destino no esta asociada a ninguna zona de TMS";
-                                $respuesta->mensaje = [];
-                                return $respuesta;
-                            }else{
-                                // $cliente_direccion_destino_id = $direccionDestino->id;
-                                $zonaDestino = $direccionDestino->id;
-                            }
-            
-                        //fin validar destino
-            
-                        // validar origen y destino distintos
-                            // if ($_destinoId == $_origenId) {
-                            //     $respuesta->estado = "error";
-                            //     $respuesta->mensaje = "Origen y destino no pueden ser iguales";
-                            //     return $respuesta;
-                            // }
-                        // fin validar origen y destino distintos
-            
-                        // validar fecha hora entrada origen
-                            if (isset($_fechaEntradaDestino)) {
-                                if ($_fechaEntradaDestino != "" || $_fechaEntradaDestino != null) {
-                                    $validarFechaHoraEntradaDestino = $this->validarFormatoFecha($_fechaEntradaDestino, "Fecha hora entrada destino");
-                                    if ($validarFechaHoraEntradaDestino != null) {
-                                        if ($validarFechaHoraEntradaDestino->estado == "error") {
-                                            return $validarFechaHoraEntradaDestino;
-                                        }
-                                    }
-                                }   
-                            }
-                        // fin validar fecha hora entrada origen
-            
-                        // validar fecha hora salida origen
-                            if (isset($_fechaSalidaDestino)) {
-                                if ($_fechaSalidaDestino != "" || $_fechaSalidaDestino != null) {
-                                    $validarFechaHoraEntradaDestino = $this->validarFormatoFecha($_fechaSalidaDestino, "Fecha hora salida destino");
-                                    if ($validarFechaHoraEntradaDestino != null) {
-                                        if ($validarFechaHoraEntradaDestino->estado == "error") {
-                                            return $validarFechaHoraEntradaDestino;
-                                        }
-                                    }
-                                }
-                            }
-                        //fin validar fecha hora salida origen
-            
-                        //validar hora de entrada menor a hora de salida en origen
-                            if (isset($_fechaEntradaDestino) && isset($_fechaSalidaDestino)) {
-                                if (strtotime($_fechaEntradaDestino) > strtotime($_fechaSalidaDestino)) {
-                                    $respuesta->estado = "error";
-                                    $respuesta->respuesta = "Le fecha de entrada en el destino no puede ser mayor a la fecha de salida";
-                                    $respuesta->mensaje = [];
-                                    return $respuesta;
-                                }
-                            }
-                        //fin validar hora de entrada menor a hora de salida en origen
-            
-            
-                        //validar hora de salida origen mayor a fecha entrada en destino
-                            if (isset($_fechaSalidaOrigen) && isset($_fechaEntradaDestino)) {
-                                if (strtotime($_fechaSalidaOrigen) > strtotime($_fechaEntradaDestino)) {
-
-                                    $respuesta->estado = "error";
-                                    $respuesta->respuesta = "Le fecha de salida en el origen no puede ser mayor a la fecha de entrada en el destino";
-                                    $respuesta->mensaje = [];
-                                    return $respuesta;
-                                }
-                            }
-                        //fin validar hora de salida origen mayor a fecha entrada en destino
-
-
-                        // validar tipo de viaje
-                            if (isset($_tipoViaje) && $_tipoViaje != null) {
-                                // $_tipoViaje = $this->reemplazarAcentos($_tipoViaje);
-                                $tipoViaje = TipoViajes::find()->where(["tipo" => strtoupper($_tipoViaje), "fecha_borrado" => null])->one();
-    
-                                if (!$tipoViaje) {
-                                    $tipoV = new TipoViajes();
-                                    $tipoV->tipo = strtoupper($_tipoViaje);
-                                    $tipoV->tipo_medio_transporte = "NORMAL";
-                                    $tipoV->fecha_creacion = date("Y-m-d H:i:s");
-
-                                    if($tipoV->save()){
-                                        $_tipoViaje = $tipoV->id;
-                                    }else{
-                                        $respuesta->estado = "error";
-                                        $respuesta->respuesta = "Error inesperado creando el tipo de viaje";
-                                        $respuesta->mensaje = [];
-                                        return $respuesta;
-                                    }
-            
-                                    // return $respuesta;
-                                }else{
-                                    $_tipoViaje = $tipoViaje->id;
-                                }
-                            }else{
-                                $_tipoViaje = 1;
-                            }
-
-                        // fin validar tipo de viaje
-
-                        // validar unidad de negocio
-
-                            $unidadNegocio = UnidadNegocio::find()->where(["upper(nombre)" => strtoupper($_unidadNegocio), "fecha_borrado" => null])->one();
-                            $unidadNegocioId = 0;
-                            if (!$unidadNegocio) {
-                                $uNegocio = new UnidadNegocio();
-                                $uNegocio->nombre = $_clienteFacturador;
-                                $uNegocio->fecha_creacion = date("Y-m-d H:i:s");
-                                if($uNegocio->save()){
-                                    $unidadNegocioId = $uNegocio->id;
-
-                                    // $this->insertarAuditoria(43, "Creación de cliente facturador desde API");
-                                }else{
-                                    $respuesta->estado = "error";
-                                    $respuesta->respuesta = "Error inesperado al crear la unidad de negocio.";
-                                    $respuesta->mensaje = [];
-                                    return $respuesta;
-                                }
-                            }else{
-
-                                $unidadNegocioId = $unidadNegocio->id;
-                            }
-                            
-                        // fin validar unidad de negocio
-
-                        // validar tipo de carga
-                            $tipoCarga = TipoCarga::find()->where(["codigo" => $_tipoCargaCodigo, "fecha_borrado" => null])->one();
-                            $tipoCargaId = 0;
-                            if (!$tipoCarga) {
-                                $tCarga = new TipoCarga();
-                                $tCarga->tipo = $_tipoCargaNombre;
-                                $tCarga->codigo = $_tipoCargaCodigo;
-                                $tCarga->fecha_creacion = date("Y-m-d H:i:s");
-                                if($tCarga->save()){
-                                    $tipoCargaId = $tCarga->id;
-
-                                    // $this->insertarAuditoria(43, "Creación de cliente facturador desde API");
-                                }else{
-    
-                                    $respuesta->estado = "error";
-                                    $respuesta->respuesta = "Error inesperado al crear el tipo de carga.";
-                                    $respuesta->mensaje = [];
-                                    return $respuesta;
-                                }
-                            }else{
-
-                                $tipoCargaId = $tipoCarga->id;
-                            }
-                            
-                        // fin validar tipo de cargo
-
-
-                        // validar transportista
-                            $transportista = Transportistas::find()->where(["documento" => $_transportistaRut, "fecha_borrado" => null])->one();
-                            $transportistaId = 0;
-                            if (!$transportista) {
-                                $trans = new Transportistas();
-                                $trans->documento = $_transportistaRut;
-                                $trans->nombre = $_transportistaNombre;
-                                $trans->razon_social = $_transportistaNombre;
-                                $trans->comuna_id =  1;
-                                $trans->region_id =  1;
-                                $trans->ciudad_id =  1;
-                                $trans->tipo_transportista_id =  1;
-                                $trans->estado =  1;
-                                $trans->fecha_creacion = date("Y-m-d H:i:s");
-                                if($trans->save()){
-                                    $transportistaId = $trans->id;
-
-                                    // $this->insertarAuditoria(43, "Creación de cliente facturador desde API");
-                                }else{
-                                    $respuesta->estado = "error";
-                                    $respuesta->respuesta = "Error inesperado al crear el transportista.";
-                                    $respuesta->mensaje = [];
-                                    return $respuesta;
-                                }
-                            }else{
-
-                                $transportistaId = $transportista->id;
-                            }
-                        // fin validar transportista
-                        
-                        // validar conductores
-                            $conductor1 = Conductores::find()->where(["documento" => $_conductorUnoRut, "transportista_id" =>   $transportistaId, "fecha_borrado" => null])->one();
-                            $conductorUnoId = 0;
-                            if (!$conductor1) {
-                                $conductorUno = new Conductores();
-
-                                $conductorUno->transportista_id = $transportistaId;
-                                
-                                $usuario = explode(" ", $_conductorUnoNombre);
-
-                                $conductorUno->documento = $_conductorUnoRut;
-                                $conductorUno->nombre = $usuario[0];
-                                $conductorUno->apellido = $usuario[0];
-                                $conductorUno->estado_conductor =  1;
-
-                                $conductorUno->usuario = $usuario[0];
-                                $clave = explode("-",$_conductorUnoRut);
-                                $conductorUno->clave = $clave[0];
-
-                                $conductorUno->fecha_creacion = date("Y-m-d H:i:s");
-                                if($conductorUno->save()){
-                                    $conductorUnoId = $conductorUno->id;
-
-                                    // $this->insertarAuditoria(43, "Creación de cliente facturador desde API");
-                                }else{
-
-                                    $respuesta->estado = "error";
-                                    $respuesta->respuesta = "Error inesperado al crear el conductor 1.";
-                                    $respuesta->mensaje = [];
-                                    return $respuesta;
-                                }
-                            }else{
-
-                                $conductorUnoId = $conductor1->id;
-                            }
-                        // fin validar conductores
-                        
-                        // validar conductores
-                            $conductor2 = Conductores::find()->where(["documento" => $_conductorDosRut, "transportista_id" =>   $transportistaId, "fecha_borrado" => null])->one();
-                            $conductorDosId = 0;
-                            if (!$conductor2) {
-                                $conductorDos = new Conductores();
-
-                                $conductorDos->transportista_id = $transportistaId;
-                                
-                                $usuario = explode(" ", $_conductorDosNombre);
-
-                                $conductorDos->documento = $_conductorDosRut;
-                                $conductorDos->nombre = $usuario[0];
-                                $conductorDos->apellido = $usuario[0];
-                                $conductorDos->estado_conductor =  1;
-
-                                $conductorDos->usuario = $usuario[0];
-                                $clave = explode("-",$_conductorDosRut);
-                                $conductorDos->clave = $clave[0];
-
-                                $conductorDos->fecha_creacion = date("Y-m-d H:i:s");
-                                if($conductorDos->save()){
-                                    $conductorDosId = $conductorDos->id;
-
-                                    // $this->insertarAuditoria(43, "Creación de cliente facturador desde API");
-                                }else{
-                                    $respuesta->estado = "error";
-                                    $respuesta->respuesta = "Error inesperado al crear el conductor 1.";
-                                    $respuesta->mensaje = [];
-                                    return $respuesta;
-                                }
-                            }else{
-
-                                $conductorDosId = $conductor2->id;
-                            }
-                        // fin validar conductores
-
-                        // validar vehiculo uno
-
-                            $vehiculo1 = Vehiculos::find()->where(["upper(patente)" => strtoupper($_vehiculoUno), "transportista_id" =>   $transportistaId, "fecha_borrado" => null])->one();
-                        
-                            $vehiculoUnoId = 0;
-                            if (!$vehiculo1) {
-
-                                $respuesta->estado = "error";
-                                $respuesta->respuesta = "El vehículo uno no existe en TMS";
-                                $respuesta->mensaje = [];
-                                return $respuesta;
-                            }else{
-                                $vehiculoUnoId = $vehiculo1->id;
-                            }
-                        // fin validar vehiculo uno
-
-                        // validar vehiculo dos
-                            $vehiculo2 = Vehiculos::find()->where(["upper(patente)" => strtoupper($_vehiculoDos), "transportista_id" =>   $transportistaId, "fecha_borrado" => null])->one();
-                            $vehiculoDosId = 0;
-                            if (!$vehiculo2) {
-
-                                $respuesta->estado = "error";
-                                $respuesta->respuesta = "El vehiculo dos no existe en TMS";
-                                $respuesta->mensaje = [];
-                                return $respuesta;
-                            }else{
-                                $vehiculoDosId = $vehiculo2->id;
-                            }
-                        // fin validar vehiculo dos
-            
-                        $viaje = new Viajes();
-                        $viaje->nro_viaje = isset($_nroViaje) ? $_nroViaje : null;
-                        $viaje->tipo_servicio_id = $servicioId;
-                        $viaje->cliente_id =  $clienteId;
-                        $viaje->estatus_viaje_id =  2;
-                        
-                        
-
-                        $viaje->transportista_id = $transportistaId;
-                        $viaje->conductor_id =  $conductorUnoId;
-                        $viaje->conductor_dos_id =  $conductorDosId;
-                        
-                        $viaje->vehiculo_uno_id =  $vehiculoUnoId;
-                        $viaje->vehiculo_dos_id =  $vehiculoDosId;
-
-                        $viaje->activar_ruta_segura = 0;
-                        $viaje->tipo_viaje_id = 1;
-                        $viaje->cliente_facturador_id = $clienteFacturadorId;
-                        // $viaje->uso_chasis_id = $usoChasisId;
-                        $viaje->unidad_negocio_id = $unidadNegocioId;
-                        $viaje->tipo_carga_id = $tipoCargaId;
-                        // $viaje->observacion = isset($_observacion) ? $_observacion : null;
-
-                        $fecha = date("Y-m-d H:i:s");
-            
-                        if ($viaje->save()) {
-                            $bandera = 0;
-                            $viajeNro = Viajes::findOne($viaje->id);
-                            if ($viajeNro->nro_viaje == "" || $viajeNro->nro_viaje == null) {
-                                $viajeNro->nro_viaje = strval($viaje->id);
-                                $viajeNro->save();
-                            }
-            
-                            //origen
-                            $viajeDetalleOrigen = new ViajeDetalle();
-                            $viajeDetalleOrigen->viaje_id = $viaje->id;
-            
-                            $viajeDetalleOrigen->zona_id =  $zonaOrigen;
-                            // $viajeDetalleOrigen->cliente_direccion_id = $cliente_direccion_origen_id;
-                            $viajeDetalleOrigen->orden = 1;
-                            $viajeDetalleOrigen->fecha_entrada = isset($_fechaEntradaOrigen) ? $_fechaEntradaOrigen : null;
-                            $viajeDetalleOrigen->fecha_salida = isset($_fechaSalidaOrigen) ? $_fechaSalidaOrigen : null;
-                            $viajeDetalleOrigen->estado = 0;
-                            $viajeDetalleOrigen->semaforo_id = 0;
-                            $viajeDetalleOrigen->cambio_estado_manual = 0;
-                            // $viajeDetalleOrigen->macrozona_id = $macrozonaOrigenId;
-                            // $viajeDetalleOrigen->m_zona_id = $m_zonaOrigenId;
-            
-                            $viajeDetalleOrigen->fecha_creado = date("Y-m-d H:i:s");
-                            if ($viajeDetalleOrigen->save()){
-                                // $fechaViaje = explode(" ", $fecha);
-                                $viaje->fecha = $fecha;
-                                $viaje->fecha_presentacion = $viajeDetalleOrigen->fecha_entrada;
-                                $viaje->update();
-                            }else{
-                                // echo '<pre>';
-                                // var_dump($viajeDetalleOrigen->getErrors());
-                                // exit;
-                                $bandera = 1;
-                                
-                            }
-                            
-            
-                            //destino
-                            $viajeDetalleDestino = new ViajeDetalle();
-                            $viajeDetalleDestino->viaje_id = $viaje->id;
-            
-                            $viajeDetalleDestino->zona_id = $zonaDestino;
-                            
-                            // $viajeDetalleDestino->cliente_direccion_id = $cliente_direccion_destino_id;
-            
-                            $viajeDetalleDestino->orden = 2;
-                            $viajeDetalleDestino->fecha_entrada = isset($_fechaEntradaDestino) ? $_fechaEntradaDestino : null;
-                            $viajeDetalleDestino->fecha_salida = isset($_fechaSalidaDestino) ? $_fechaSalidaDestino : null;
-                            $viajeDetalleDestino->estado = 0;
-                            $viajeDetalleDestino->fecha_creado = date("Y-m-d H:i:s");
-                            $viajeDetalleDestino->semaforo_id = 0;
-                            $viajeDetalleDestino->cambio_estado_manual = 0;
-                            // $viajeDetalleDestino->macrozona_id = $macrozonaDestinoId;
-                            // $viajeDetalleDestino->m_zona_id = $m_zonaDestinoId;
-                            if (!$viajeDetalleDestino->save()){
-                                $bandera = 1;
-                            } else{
-                                // $viaje->fecha_presentacion = isset($_fechaEntradaDestino) ? $_fechaEntradaDestino : null;;
-                                $viaje->update();
-                            }
-            
-
-                        }else{
-                            $bandera = 1;
-                        }
-            
-                        if ($bandera == 0) {
-                            $respuesta->estado = "ok";
-                            $respuesta->respuesta = "Viaje agregado con exito: viaje_id = {$viaje->id}";
-                            $respuesta->id_viaje = $viaje->nro_viaje;
-                            $respuesta->mensaje = [];
-
-
-
-                            if ($_POST) {
-                                $datos = json_encode($_POST);
-                            }else{
-                                $datos = json_encode($data);
-                            }
-
-                            $this->insertarLogViajes($viaje->id, $datos, "Creado con exito desde API", null);
-                            
-                            return $respuesta;
-                        }else{
-                            $respuesta->estado = "error";
-                            $respuesta->respuesta = "Error al crear el viaje";
-                            $respuesta->mensaje = [];
-
-                            // $this->insertarLogViajes($viaje->id, $datos, "Error desde api");
-                            return $respuesta;
-                        }
-            
-            
-                    //
-                }else{
-
-                    $respuesta->estado = "error";
-                    $respuesta->respuesta = "API_KEY invalida";
-                    $respuesta->mensaje = [];
-                }
-            
-            
-                return $respuesta;
-            }
-        // fin creacion viajes
-
-        //edicion viajes
-            public function actionEditarviaje(){
-
-                    
-                date_default_timezone_set("America/Santiago");
-                $key = $this->validarKey(getallheaders()["Autorizacion"]);
-
-                $respuesta = new stdClass();
-                if ($key != null) {
-                    
-                    if ($_POST) {
-                        $_nroViaje = isset($_POST["nro_viaje"]) ? $_POST["nro_viaje"] : null ;
-                        $_tipoOperacion = isset($_POST["tipo_operacion"]) ? $_POST["tipo_operacion"] : null ;
-                        $_tipoServicio = isset($_POST["tipo_servicio"]) ? $_POST["tipo_servicio"] : null;
-                        $_rut  = isset($_POST["rut"]) ? $_POST["rut"] : null;
-                        $_cliente  = isset($_POST["cliente"]) ? $_POST["cliente"] : null;
-                        $_tipoCargaNombre  = isset($_POST["tipo_carga_nombre"]) ? $_POST["tipo_carga_nombre"] : null;
-                        $_tipoCargaCodigo  = isset($_POST["tipo_carga_codigo"]) ? $_POST["tipo_carga_codigo"] : null;
-                        
-                        $_transportistaRut  = isset($_POST["transportista_rut"]) ? $_POST["transportista_rut"] : null;
-                        $_transportistaNombre  = isset($_POST["transportista_nombre"]) ? $_POST["transportista_nombre"] : null;
-                        $_conductorUnoRut  = isset($_POST["conductor_uno_rut"]) ? $_POST["conductor_uno_rut"] : null;
-                        $_conductorUnoNombre  = isset($_POST["conductor_uno_nombre"]) ? $_POST["conductor_uno_nombre"] : null;
-                        $_conductorDosRut = isset($_POST["conductor_dos_rut"]) ? $_POST["conductor_dos_rut"] : null;
-                        $_conductorDosNombre  = isset($_POST["conductor_dos_nombre"]) ? $_POST["conductor_dos_nombre"] : null;
-                        $_vehiculoUno = isset($_POST["vehiculo_uno"]) ? $_POST["vehiculo_uno"] : null;
-                        $_vehiculoDos  = isset($_POST["vehiculo_dos"]) ? $_POST["vehiculo_dos"] : null;
-                        
-            
-                        $_poligonoOrigen  = isset($_POST["poligono_origen"]) ? $_POST["poligono_origen"] : null ;
-                        $_comunaOrigen  = isset($_POST["comuna_origen"]) ? $_POST["comuna_origen"] : null ;
-                        
-                        
-                        $_fechaEntradaOrigen  = isset($_POST["fecha_entrada_origen"]) ? $_POST["fecha_entrada_origen"] : null ;
-                        $_fechaSalidaOrigen = isset($_POST["fecha_salida_origen"]) ? $_POST["fecha_salida_origen"] : null ;
-                        $_destinoId  = isset($_POST["destino_id"]) ? $_POST["destino_id"] : null;
-                        $_poligonoDestino  = isset($_POST["direccion_destino_id"]) ? $_POST["direccion_destino_id"] : null ;
-                        $_comunaDestino  = isset($_POST["comuna_destino"]) ? $_POST["comuna_destino"] : null ;
-            
-                        $_fechaEntradaDestino  = isset($_POST["fecha_entrada_destino"]) ? $_POST["fecha_entrada_destino"] : null;
-                        $_fechaSalidaDestino = isset($_POST["fecha_salida_destino"]) ? $_POST["fecha_salida_destino"] :  null;
-            
-                        $_rutFacturador  = isset($_POST["rut_facturador"]) ? $_POST["rut_facturador"] : null;
-                        $_clienteFacturador  = isset($_POST["cliente_facturador"]) ? $_POST["cliente_facturador"] : null;
-            
-                        $_unidadNegocio = isset($_POST["unidad_negocio"]) ? $_POST["unidad_negocio"] : null;
-            
-            
-                    }else{
-                        $post = file_get_contents('php://input');
-                        $data = json_decode($post);
-            
-                        $_nroViaje = isset($data->nro_viaje) ? $data->nro_viaje : null;
-                        $_tipoOperacion = isset($data->tipo_operacion) ? $data->tipo_operacion : null;
-                        $_tipoServicio = isset($data->tipo_servicio) ? $data->tipo_servicio : null;
-                        $_rut  = isset($data->rut) ? $data->rut : null;
-                        $_cliente  = isset($data->cliente) ? $data->cliente : null;
-                        $_tipoCarga  = isset($data->tipo_carga) ? $data->tipo_carga : null;
-                        $_tipoCargaNombre  = isset($data->tipo_carga_nombre) ? $data->tipo_carga_nombre : null;
-                        $_tipoCargaCodigo  = isset($data->tipo_carga_codigo) ? $data->tipo_carga_codigo : null;
-            
-                        $_transportistaRut  = isset($data->transportista_rut) ? $data->transportista_rut : null;
-                        $_transportistaNombre  = isset($data->transportista_nombre) ? $data->transportista_nombre : null;
-                        $_conductorUnoRut  = isset($data->conductor_uno_rut) ? $data->conductor_uno_rut : null;
-                        $_conductorUnoNombre  = isset($data->conductor_uno_nombre) ? $data->conductor_uno_nombre : null;
-                        $_conductorDosRut = isset($data->conductor_dos_rut) ? $data->conductor_dos_rut : null;
-                        $_conductorDosNombre  = isset($data->conductor_dos_nombre) ? $data->conductor_dos_nombre : null;
-                        $_vehiculoUno = isset($data->vehiculo_uno) ? $data->vehiculo_uno : null;
-                        $_vehiculoDos  = isset($data->vehiculo_dos) ? $data->vehiculo_dos : null;
-            
-                        $_poligonoOrigen  = isset($data->poligono_origen) ? $data->poligono_origen : null;
-                        $_comunaOrigen  = isset($data->comuna_origen) ? $data->comuna_origen : null;
-            
-            
-                        $_fechaEntradaOrigen  = isset($data->fecha_entrada_origen) ? $data->fecha_entrada_origen : null;
-                        $_fechaSalidaOrigen = isset($data->fecha_salida_origen) ? $data->fecha_salida_origen : null;
-                        $_destinoId  = isset($data->destino_id) ? $data->destino_id : null;
-                        $_poligonoDestino  = isset($data->poligono_destino) ? $data->poligono_destino : null;
-                        $_comunaDestino  =isset($data->comuna_destino) ? $data->comuna_destino : null;
-                        
-                        $_fechaEntradaDestino  = isset($data->fecha_entrada_destino) ? $data->fecha_entrada_destino : null;
-                        $_fechaSalidaDestino = isset($data->fecha_salida_destino) ? $data->fecha_salida_destino : null;
-            
-            
-                        $_rutFacturador  = isset($data->rut_facturador) ? $data->rut_facturador : null ;
-                        $_clienteFacturador  = isset($data->cliente_facturador) ? $data->cliente_facturador : null ;
-            
-                        $_unidadNegocio = isset($data->unidad_negocio) ? $data->unidad_negocio : null ;
-                    }
-            
-                //validaciones de requeridos
-
-                    $errores = [];
-                    if (!isset($_nroViaje) || $_nroViaje =="" || $_nroViaje == null) {
-                        $errores[] = 'El campo nro_viaje es requerido';
-                    }
-
-                    if (!isset($_tipoOperacion) && $_tipoServicio != "") {
-                        $errores[] = 'Se intenta editar el tipo servicio, pero no se ha especificado el tipo de operación';
-                    }
-
-                    if (!isset($_rut) && $_cliente != "") {
-                        $errores[] = 'Se intenta editar el cliente, pero no se ha especificado el rut del mismo';
-                    }
-                    if (!isset($_cliente) && $_rut != "") {
-                        $errores[] = 'Se intenta editar el cliente, pero no se ha especificado el nombre del mismo';
-                    }
-                    
-                    if (!isset($_rutFacturador) && $_clienteFacturador != "") {
-                        $errores[] = 'Se intenta editar el cliente facturador, pero no se ha especificado el rut del mismo';
-                    }
-
-                    if (!isset($_clienteFacturador) && $_rutFacturador != "") {
-                        $errores[] = 'Se intenta editar el cliente facturador, pero no se ha especificado el nombre del mismo';
-                    }
-                    
-                    if (isset($_transportistaNombre) && $_transportistaRut == "") {
-                        $errores[] = 'Se intenta editar el tranportista, pero no se ha especificado el rut del mismo';
-                    }
-                    
-                    if (isset($_transportistaRut) && $_transportistaNombre == "") {
-                        $errores[] = 'Se intenta editar o hacer busquedas por el tranportista para editar conductores o vehículos, pero no se ha especificado el nombre del mismo';
-                    }
-                    
-                    if (!isset($_conductorUnoNombre) && $_conductorUnoRut != "") {
-                        $errores[] = 'Se intenta editar el conductor uno, pero no se ha especificado el rut del mismo';
-                    }
-                    
-                    if (!isset($_conductorUnoRut) && $_conductorUnoNombre != "") {
-                        $errores[] = 'Se intenta editar el conductor uno, pero no se ha especificado el nombre del mismo';
-                    }
-                    
-                    if (!isset($_conductorUnoNombre) && $_conductorUnoRut != "") {
-                        $errores[] = 'Se intenta editar el conductor uno, pero no se ha especificado el rut del mismo';
-                    }
-                    
-                    if (!isset($_conductorUnoRut) && $_conductorUnoNombre != "") {
-                        $errores[] = 'Se intenta editar el conductor uno, pero no se ha especificado el nombre del mismo';
-                    }
-
-                    if (!isset($_conductorUnoRut) && $_conductorUnoNombre != "" && $_transportistaRut == "") {
-                        $errores[] = 'Se intenta editar el conductor uno, pero no se ha especificado el rut del transportista';
-                    }
-                    
-                    if (!isset($_conductorDosNombre) && $_conductorDosRut != "") {
-                        $errores[] = 'Se intenta editar el conductor dos, pero no se ha especificado el rut del mismo';
-                    }
-                    
-                    if (!isset($_conductorDosRut) && $_conductorDosNombre != "") {
-                        $errores[] = 'Se intenta editar el conductor dos, pero no se ha especificado el nombre del mismo';
-                    }
-
-                    if (!isset($_conductorDosRut) && $_conductorDosNombre != "" && $_transportistaRut == "") {
-                        $errores[] = 'Se intenta editar el conductor dos, pero no se ha especificado el rut del transportista';
-                    }
-                    
-                    if (isset($_vehiculoUno) && $_transportistaRut == "") {
-                        $errores[] = 'Se intenta editar el vehículo uno, pero no se ha especificado el rut del transportista';
-                    }
-                    
-                    if (isset($_vehiculoDos) &&  $_transportistaRut == "") {
-                        $errores[] = 'Se intenta editar el vehículo dos, pero no se ha especificado el rut del transportista';
-                    }
-            
-                    if (count($errores) > 0) {
-
-                        $respuesta->estado = "error";
-                        $respuesta->respuesta = "detalle errores";
-                        $respuesta->mensaje = $errores;
-                        return $respuesta;
-                    }
-                    
-                //fin validaciones de requeridos
-            
-                    // if ($_POST) {
-                        // validar nro de viaje
-                            $viajeID = 0;
-                            $clienteId = 0;
-                            if ($_nroViaje != "") {
-                                $nroViaje = Viajes::find()->where(["nro_viaje" => $_nroViaje])->one();
-                                if (!$nroViaje) {
-                                    $respuesta->estado = "error";
-                                    $respuesta->respuesta = "Nro de viaje no está asociado a ningún viaje";
-                                    $respuesta->mensaje = [];
-                                    return $respuesta;
-                                }else{
-                                    $viajeID = $nroViaje->id;
-                                    $clienteId = $nroViaje->cliente_id;
-                                }
-                            }
-
-                        // fin validar nro de viaje
-
-                        // validar tipo de operacion
-                            $operacionID = 0;
-                            $servicioId = 0;
-                            if (isset($_tipoOperacion)) {
-
-                                $tipoOperacion = TipoOperacion::find()->where(["UPPER(nombre)" => strtoupper($_tipoOperacion)])->one();
-
-                                if (!$tipoOperacion) {
-                                    $operacion = new TipoOperacion();
-                                    $operacion->nombre = strtoupper($_tipoOperacion);
-                                    $operacion->fecha_creacion = date("Y-m-d H:i:s");
-
-                                    if($operacion->save()){
-
-                                        $operacionID = $operacion->id;
-
-                                        // validar tipo de servicio
-                                            $tipoServicio = TipoServicio::find()->where(["UPPER(nombre)" => strtoupper($_tipoServicio), "tipo_operacion_id" => $operacionID])->one();
-                                            if (!$tipoServicio) {
-                                                $servicio = new TipoServicio();
-                                                $servicio->tipo_operacion_id = $operacionID;
-                                                $servicio->nombre = strtoupper($_tipoServicio);
-
-                                                if($servicio->save()){
-                                                    $servicioId = $servicio->id;
-                                                }else{
-
-                                                    $respuesta->estado = "error";
-                                                    $respuesta->respuesta = "Error inesperado creando el tipo de servicio";
-                                                    $respuesta->mensaje = [];
-                                                    return $respuesta;
-                                                }
-                                            }else{
-                                                $servicioId = $tipoServicio->id;
-                                            }
-                                        // fin validar tipo de servicio
-
-
-                                    }else{
-                                        $respuesta->estado = "error";
-                                        $respuesta->respuesta = "Error inesperado creando el tipo de operación";
-                                        $respuesta->mensaje = [];
-                                        return $respuesta;
-                                    }
-
-                                    // return $respuesta;
-                                }else{
-                                    $operacionID = $tipoOperacion->id;
-
-                                    // validar tipo de servicio
-                                    $tipoServicio = TipoServicio::find()->where(["UPPER(nombre)" => strtoupper($_tipoServicio), "tipo_operacion_id" => $operacionID])->one();
-                                    if (!$tipoServicio) {
-                                        $servicio = new TipoServicio();
-                                        $servicio->tipo_operacion_id = $operacionID;
-                                        $servicio->nombre = strtoupper($_tipoServicio);
-
-                                        if($servicio->save()){
-                                            $servicioId = $servicio->id;
-                                        }else{
-                                            $respuesta->estado = "error";
-                                            $respuesta->respuesta = "Error inesperado creando el tipo de servicio";
-                                            $respuesta->mensaje = [];
-                                            return $respuesta;
-                                        }
-                                    }else{
-                                        $servicioId = $tipoServicio->id;
-                                    }
-                                // fin validar tipo de servicio
-                                }
-                            }
-
-                        // fin validar tipo de operacion
-            
-                        // validar cliente
-                            $clienteId = 0;
-                            if (isset($_rut)) {
-                                $cliente = Clientes::find()->where(["rut" => $_rut])->one();
-                                if (!$cliente) {
-                                    $nuevoCliente = new Clientes();
-                                    $nuevoCliente->rut = $_rut;
-                                    $nuevoCliente->nombre = $_cliente;
-                                    $nuevoCliente->nombre_fantasia = $_cliente;
-                                    $nuevoCliente->comuna_id = 1;
-                                    $nuevoCliente->region_id = 1;
-                                    $nuevoCliente->ciudad_id = 1;
-                                    $nuevoCliente->tipo_cliente_id = 1;
-                                    if($nuevoCliente->save()){
-                                        $clienteId = $nuevoCliente->id;
-                                    }else{
-
-                                        $respuesta->estado = "error";
-                                        $respuesta->respuesta = "Error inesperado al crear el cliente.";
-                                        $respuesta->mensaje = [];
-                                        return $respuesta;
-                                    }
-                                }else{
-
-                                    $clienteId = $cliente->id;
-                                }
-                            }
-
-                        // fin validar cliente
-
-                        // validar cliente facturador
-                            $clienteFacturadorId = 0;
-                            if (isset($_rutFacturador)) {
-                                $clienteFacturador = ClienteFacturador::find()->where(["rut" => $_rutFacturador])->one();
-                                if (!$clienteFacturador) {
-                                    $nuevoClienteFacturador = new ClienteFacturador();
-                                    $nuevoClienteFacturador->rut = $_rutFacturador;
-                                    $nuevoClienteFacturador->nombre = $_clienteFacturador;
-                                    $nuevoClienteFacturador->nombre_fantasia = $_clienteFacturador;
-                                    $nuevoClienteFacturador->comuna_id = 1;
-                                    $nuevoClienteFacturador->region_id = 1;
-                                    $nuevoClienteFacturador->ciudad_id = 1;
-                                    if($nuevoClienteFacturador->save()){
-                                        $clienteFacturadorId = $nuevoClienteFacturador->id;
-
-                                        $this->insertarAuditoria(43, "Creación de cliente facturador desde API");
-                                    }else{
-                                        $respuesta->estado = "error";
-                                        $respuesta->respuesta = "Error inesperado al crear el cliente facturador.";
-                                        $respuesta->mensaje = [];
-                                        return $respuesta;
-                                    }
-                                }else{
-
-                                    $clienteFacturadorId = $clienteFacturador->id;
-                                }
-                            }
-                        // fin validar cliente facturador
-            
-                        // validar origen
-                            $zonaOrigen = 0;
-                            // $cliente_direccion_origen_id = 0;
-                            if (isset($_poligonoOrigen)) {
-                                $poligonoOrigen = Zonas::find()->where(["id" => $_poligonoOrigen, "fecha_borrado" => null])->one();
-                                if (!$poligonoOrigen) {
-                                    $respuesta->estado = "error";
-                                    $respuesta->respuesta = "El id no esta asociado a ningun poligono de TMS";
-                                    $respuesta->mensaje = [];
-                                    return $respuesta;
-                                }else{
-                                    // $cliente_direccion_origen_id = $poligonoOrigen->id;
-                                    $zonaOrigen = $poligonoOrigen->id;
-                                }
-                            }
-                            
-                        // fin validar origen
-            
-                        // validar fecha hora entrada origen
-            
-                            if (isset($_fechaEntradaOrigen)) {
-                                if ($_fechaEntradaOrigen != "") {
-                                    $validarFechaHoraEntradaOrigen = $this->validarFormatoFecha($_fechaEntradaOrigen, "Fecha hora entrada origen");
-                                    if ($validarFechaHoraEntradaOrigen != null) {
-                                        if ($validarFechaHoraEntradaOrigen->estado == "error") {
-                                            return $validarFechaHoraEntradaOrigen;
-                                        }
-                                    }
-                                    $banderaFechaEntradaOrigen = 0;
-                                }
-                            }
-                        // fin validar fecha hora entrada origen
-            
-                        // validar fecha hora salida origen
-                            if (isset($_fechaSalidaOrigen)) {
-
-                                if ($_fechaSalidaOrigen != "") {
-                                    $validarFechaHoraSalidaOrigen = $this->validarFormatoFecha($_fechaSalidaOrigen, "Fecha hora salida origen");
-                                    if ($validarFechaHoraSalidaOrigen != null) {
-                                        if ($validarFechaHoraSalidaOrigen->estado == "error") {
-                                            return $validarFechaHoraSalidaOrigen;
-                                        }
-                                    }
-                                }
-                            }
-                        //fin validar fecha hora salida origen
-            
-                        //validar hora de entrada menor a hora de salida en origen
-                            if (isset($_fechaEntradaOrigen) && isset($_fechaSalidaOrigen)) {
-                                
-                                if (strtotime($_fechaEntradaOrigen) > strtotime($_fechaSalidaOrigen)) {
-                                    $respuesta->estado = "error";
-                                    $respuesta->respuesta = "Le fecha de entrada en el origen no puede ser mayor a la fecha de salida";
-                                    $respuesta->mensaje = [];
-                                    return $respuesta;
-                                }
-                            }
-                        //fin validar hora de entrada menor a hora de salida en origen
-            
-                        // validar destino
-                            $zonaDestino = 0;
-                            // $cliente_direccion_destino_id = 0;
-                            
-                            if (isset($_poligonoDestino)) {
-                                
-                                $poligonoDestino = Zonas::find()->where(["id" => $_poligonoDestino, "fecha_borrado" => null])->one();
-                                if (!$poligonoDestino) {
-                                    $respuesta->estado = "error";
-                                    $respuesta->respuesta = "La direccion de destino no esta asociada a ninguna zona de TMS";
-                                    $respuesta->mensaje = [];
-                                    return $respuesta;
-                                }else{
-                                    // $cliente_direccion_destino_id = $poligonoDestino->id;
-                                    $zonaDestino = $poligonoDestino->id;
-                                }
-                            }
-            
-                        //fin validar destino
-            
-                        // validar fecha hora entrada origen
-                            if (isset($_fechaEntradaDestino)) {
-
-
-                                if ($_fechaEntradaDestino != "") {
-
-                                    $validarFechaHoraEntradaDestino = $this->validarFormatoFecha($_fechaEntradaDestino, "Fecha hora entrada destino");
-                                    if ($validarFechaHoraEntradaDestino != null) {
-                                        if ($validarFechaHoraEntradaDestino->estado == "error") {
-                                            return $validarFechaHoraEntradaDestino;
-                                        }
-                                    }
-                                }
-                            }
-                        // fin validar fecha hora entrada origen
-            
-                        // validar fecha hora salida origen
-                            if (isset($_fechaSalidaDestino)) {
-                                if ($_fechaSalidaDestino != "") {
-                                    $validarFechaHoraEntradaDestino = $this->validarFormatoFecha($_fechaSalidaDestino, "Fecha hora salida destino");
-                                    if ($validarFechaHoraEntradaDestino != null) {
-                                        if ($validarFechaHoraEntradaDestino->estado == "error") {
-                                            return $validarFechaHoraEntradaDestino;
-                                        }
-                                    }
-                                }
-                            }
-                        //fin validar fecha hora salida origen
-            
-                        //validar hora de entrada menor a hora de salida en origen
-                            if (isset($_fechaEntradaDestino) && isset($_fechaSalidaDestino)) {
-                                if (strtotime($_fechaEntradaDestino) > strtotime($_fechaSalidaDestino)) {
-                                    $respuesta->estado = "error";
-                                    $respuesta->respuesta = "Le fecha de entrada en el destino no puede ser mayor a la fecha de salida";
-                                    $respuesta->mensaje = [];
-                                    return $respuesta;
-                                }
-                            }
-                        //fin validar hora de entrada menor a hora de salida en origen
-            
-            
-                        //validar hora de salida origen mayor a fecha entrada en destino
-                            if (isset($_fechaSalidaOrigen) && isset($_fechaEntradaDestino)) {
-                                if (strtotime($_fechaSalidaOrigen) > strtotime($_fechaEntradaDestino)) {
-                                    $respuesta->estado = "error";
-                                    $respuesta->respuesta = "Le fecha de salida en el origen no puede ser mayor a la fecha de entrada en el destino";
-                                    $respuesta->mensaje = [];
-                                    return $respuesta;
-                                }
-                            }
-                        //fin validar hora de salida origen mayor a fecha entrada en destino
-
-
-                        // validar tipo de viaje
-                            // if ($_tipoViaje != null) {
-                            //     // $_tipoViaje = $this->reemplazarAcentos($_tipoViaje);
-                            //     $tipoViaje = TipoViajes::find()->where(["tipo" => strtoupper($_tipoViaje)])->one();
-    
-                            //     if (!$tipoViaje) {
-                            //         $tipoV = new TipoViajes();
-                            //         $tipoV->tipo = strtoupper($_tipoViaje);
-                            //         $tipoV->tipo_medio_transporte = "NORMAL";
-                            //         $tipoV->fecha_creacion =  date("Y-m-d H:i:s");
-
-                            //         if($tipoV->save()){
-                            //             $_tipoViaje = $tipoV->id;
-                            //         }else{
-                            //             $respuesta->estado = "error";
-                            //             $respuesta->mensaje = "Error inesperado creando el tipo de viaje";
-                            //             return $respuesta;
-                            //         }
-            
-                            //         // return $respuesta;
-                            //     }else{
-                            //         $_tipoViaje = $tipoViaje->id;
-
-                            //     }
-                            // }else{
-                            //     $_tipoViaje = 1;
-                            // }
-
-                        // fin validar tipo de viaje
-
-                        // validar unidad de negocio
-
-                            $unidadNegocioId = 0;
-                            if(isset($_unidadNegocio)){
-
-                                $unidadNegocio = UnidadNegocio::find()->where(["upper(nombre)" => strtoupper($_unidadNegocio)])->one();
-                                if (!$unidadNegocio) {
-                                    $uNegocio = new UnidadNegocio();
-                                    $uNegocio->nombre = $_unidadNegocio;
-                                    $uNegocio->fecha_creacion = date("Y-m-d H:i:s");
-                                    if($uNegocio->save()){
-                                        $unidadNegocioId = $uNegocio->id;
-        
-                                        // $this->insertarUditoria(43, "Creación de cliente facturador desde API");
-                                    }else{
-                                        $respuesta->estado = "error";
-                                        $respuesta->respuesta = "Error inesperado al crear la unidad de negocio.";
-                                        $respuesta->mensaje = [];
-                                        return $respuesta;
-                                    }
-                                }else{
-        
-                                    $unidadNegocioId = $unidadNegocio->id;
-                                }
-                            }
-                            
-                        // fin validar unidad de negocio
-                            
-                        // validar tipo de carga
-                            $tipoCargaId = 0;
-                            if(isset($_tipoCargaCodigo)){
-                                $tipoCarga = TipoCarga::find()->where(["codigo" => $_tipoCargaCodigo, "fecha_borrado" => null])->one();
-                                if (!$tipoCarga) {
-                                    $tCarga = new TipoCarga();
-                                    $tCarga->tipo = $_tipoCargaNombre;
-                                    $tCarga->codigo = $_tipoCargaCodigo;
-                                    $tCarga->fecha_creacion = date("Y-m-d H:i:s");
-                                    if($tCarga->save()){
-                                        $tipoCargaId = $tCarga->id;
-
-                                        $this->insertarAuditoria(43, "Creación de tipo de carga desde API");
-                                    }else{
-                                        $respuesta->estado = "error";
-                                        $respuesta->respuesta = "Error inesperado al crear el tipo de carga.";
-                                        $respuesta->mensaje = [];
-                                        return $respuesta;
-                                    }
-                                }else{
-
-                                    $tipoCargaId = $tipoCarga->id;
-                                }
-                            }
-                            
-                        // fin validar tipo de cargo
-
-                        // validar transportista
-                            if(isset($_transportistaRut) && isset($_transportistaNombre)){
-                                $transportista = Transportistas::find()->where(["documento" => $_transportistaRut, "fecha_borrado" => null])->one();
-                                $transportistaId = 0;
-                                if (!$transportista) {
-                                    $trans = new Transportistas();
-                                    $trans->documento = $_transportistaRut;
-                                    $trans->nombre = $_transportistaNombre;
-                                    $trans->razon_social = $_transportistaNombre;
-                                    $trans->comuna_id =  1;
-                                    $trans->region_id =  1;
-                                    $trans->ciudad_id =  1;
-                                    $trans->tipo_transportista_id =  1;
-                                    $trans->estado =  1;
-                                    $trans->fecha_creacion = date("Y-m-d H:i:s");
-                                    if($trans->save()){
-                                        $transportistaId = $trans->id;
-
-                                        // $this->insertarAuditoria(43, "Creación de cliente facturador desde API");
-                                    }else{
-
-                                        $respuesta->estado = "error";
-                                        $respuesta->respuesta = "Error inesperado al crear el transportista.";
-                                        $respuesta->mensaje = [];
-                                        return $respuesta;
-                                    }
-                                }else{
-
-                                    $transportistaId = $transportista->id;
-                                }
-                            }
-                        // fin validar transportista
-                        
-                        // validar conductores
-                            $conductorUnoId = 0;
-                            if(isset($_conductorUnoRut)){
-
-                                $conductor1 = Conductores::find()->where(["documento" => $_conductorUnoRut, "transportista_id" =>   $transportistaId, "fecha_borrado" => null])->one();
-                                if (!$conductor1) {
-                                    $conductorUno = new Conductores();
-        
-                                    $conductorUno->transportista_id = $transportistaId;
-                                    
-                                    $usuario = explode(" ", $_conductorUnoNombre);
-        
-                                    $conductorUno->documento = $_conductorUnoRut;
-                                    $conductorUno->nombre = $usuario[0];
-                                    $conductorUno->apellido = $usuario[0];
-                                    $conductorUno->estado_conductor =  1;
-        
-                                    $conductorUno->usuario = $usuario[0];
-                                    $clave = explode("-",$_conductorUnoRut);
-                                    $conductorUno->clave = $clave[0];
-        
-                                    $conductorUno->fecha_creacion = date("Y-m-d H:i:s");
-                                    if($conductorUno->save()){
-                                        $conductorUnoId = $conductorUno->id;
-        
-                                        // $this->insertarAuditoria(43, "Creación de cliente facturador desde API");
-                                    }else{
-                            
-                                        $respuesta->estado = "error";
-                                        $respuesta->respuesta = "Error inesperado al crear el conductor 1.";
-                                        $respuesta->mensaje = [];
-                                        return $respuesta;
-                                    }
-                                }else{
-        
-                                    $conductorUnoId = $conductor1->id;
-                                }
-
-                            }
-                        // fin validar conductores
-                        
-                        // validar conductores
-                            if(isset($_conductorDosRut)){
-
-                                $conductor2 = Conductores::find()->where(["documento" => $_conductorDosRut, "transportista_id" =>   $transportistaId, "fecha_borrado" => null])->one();
-                                $conductorDosId = 0;
-                                if (!$conductor2) {
-                                    $conductorDos = new Conductores();
-        
-                                    $conductorDos->transportista_id = $transportistaId;
-                                    
-                                    $usuario = explode(" ", $_conductorDosNombre);
-        
-                                    $conductorDos->documento = $_conductorDosRut;
-                                    $conductorDos->nombre = $usuario[0];
-                                    $conductorDos->apellido = $usuario[0];
-                                    $conductorDos->estado_conductor =  1;
-        
-                                    $conductorDos->usuario = $usuario[0];
-                                    $clave = explode("-",$_conductorDosRut);
-                                    $conductorDos->clave = $clave[0];
-        
-                                    $conductorDos->fecha_creacion = date("Y-m-d H:i:s");
-                                    if($conductorDos->save()){
-                                        $conductorDosId = $conductorDos->id;
-        
-                                        // $this->insertarAuditoria(43, "Creación de cliente facturador desde API");
-                                    }else{
-                                        $respuesta->estado = "error";
-                                        $respuesta->respuesta = "Error inesperado al crear el conductor 2.";
-                                        $respuesta->mensaje = [];
-                                        return $respuesta;
-                                    }
-                                }else{
-        
-                                    $conductorDosId = $conductor2->id;
-                                }
-                            }
-                        // fin validar conductores
-
-                        // validar vehiculo uno
-                        
-                            $vehiculoUnoId = 0;
-                            if(isset($_vehiculoUno)){
-                                $vehiculo1 = Vehiculos::find()->where(["upper(patente)" => strtoupper($_vehiculoUno), "transportista_id" =>   $transportistaId, "fecha_borrado" => null])->one();
-                                
-                                if (!$vehiculo1) {
-                                    $respuesta->estado = "error";
-                                    $respuesta->respuesta = "El vehículo uno no existe en TMS o no esta asignado el transportista enviado";
-                                    $respuesta->mensaje = [];
-                                    return $respuesta;
-                                }else{
-                                    $vehiculoUnoId = $vehiculo1->id;
-                                }
-                            }
-                        // fin validar vehiculo uno
-
-                        // validar vehiculo dos
-                            $vehiculoDosId = 0;
-                            if(isset($_vehiculoDos)){
-                                $vehiculo2 = Vehiculos::find()->where(["upper(patente)" => strtoupper($_vehiculoDos), "transportista_id" =>   $transportistaId, "fecha_borrado" => null])->one();
-                                if (!$vehiculo2) {
-                                    $respuesta->estado = "error";
-                                    $respuesta->respuesta = "El vehiculo dos no existe en TMS o no esta asignado el transportista enviado";
-                                    $respuesta->mensaje = [];
-                                    return $respuesta;
-                                }else{
-                                    $vehiculoDosId = $vehiculo2->id;
-                                }
-                            }
-                        // fin validar vehiculo dos
-
-                        $viaje = Viajes::find()->where(["id" => $viajeID])->one();
-                            
-                        $viaje->tipo_servicio_id = $servicioId == 0 ? $viaje->tipo_servicio_id : $servicioId ;
-                        $viaje->cliente_id =  $clienteId == 0 ? $viaje->cliente_id : $clienteId;
-
-                        $viaje->tipo_viaje_id = 1;
-
-                        $fecha = isset($_fechaEntradaOrigen) ? $_fechaEntradaOrigen : date("Y-m-d 00:00:00");
-                        
-                        $viaje->cliente_facturador_id = $clienteFacturadorId == 0 ? $viaje->cliente_facturador_id : $clienteFacturadorId;
-                        $viaje->uso_chasis_id = 1  ;
-                        $viaje->unidad_negocio_id = $unidadNegocioId == 0 ? $viaje->unidad_negocio_id : $unidadNegocioId;
-                        $viaje->tipo_carga_id = $tipoCargaId == 0 ? $viaje->tipo_carga_id : $tipoCargaId;
-                        $viaje->vehiculo_uno_id = $vehiculoUnoId == 0 ? $viaje->vehiculo_uno_id : $vehiculoUnoId;
-                        $viaje->vehiculo_dos_id = $vehiculoDosId == 0 ? $viaje->vehiculo_dos_id : $vehiculoDosId;
-                        // $viaje->observacion = isset($_observacion) ? $_observacion : $viaje->observacion;
-
-
-                        if ($viaje->save()) {
-                            $bandera = 0;
-
-                            //origen
-                            $viajeDetalleOrigen = ViajeDetalle::find()->where(["viaje_id" => $viajeID, "orden" => 1])->one();
-                            $viajeDetalleOrigen->zona_id =  $zonaOrigen == 0 ? $viajeDetalleOrigen->zona_id : $zonaOrigen;
-                            // $viajeDetalleOrigen->cliente_direccion_id = $cliente_direccion_origen_id == 0 ? $viajeDetalleOrigen->cliente_direccion_id : $cliente_direccion_origen_id;
-                            
-                            $viajeDetalleOrigen->fecha_entrada = isset($_fechaEntradaOrigen) ? $_fechaEntradaOrigen : $viajeDetalleOrigen->fecha_entrada;
-                            $viajeDetalleOrigen->fecha_salida = isset($_fechaSalidaOrigen) ? $_fechaSalidaOrigen : $viajeDetalleOrigen->fecha_salida;
-                            $viajeDetalleOrigen->estado = 0;
-                            $viajeDetalleOrigen->semaforo_id = 0;
-                            $viajeDetalleOrigen->cambio_estado_manual = 0;
-                            // $viajeDetalleOrigen->macrozona_id = $macrozonaOrigenId == 0 ? $viajeDetalleOrigen->macrozona_id : $macrozonaOrigenId;
-                            // $viajeDetalleOrigen->m_zona_id = $m_zonaOrigenId == 0 ? $viajeDetalleOrigen->m_zona_id : $m_zonaOrigenId;
-
-                            $viajeDetalleOrigen->fecha_edicion = date("Y-m-d H:i:s");
-                            if ($viajeDetalleOrigen->save()){
-
-                                $viaje->fecha_presentacion =  isset($_fechaEntradaOrigen) ? $_fechaEntradaOrigen : $viajeDetalleOrigen->fecha_entrada;
-                                $viaje->update();
-
-                            }else{
-                                $bandera = 1;  
-                            }
-                            
-                            //destino
-                            $viajeDetalleDestino = ViajeDetalle::find()->where(["viaje_id" => $viajeID])->orderBy(['orden' => SORT_DESC])->one();
-
-                            $viajeDetalleDestino->zona_id = $zonaDestino == 0 ? $viajeDetalleDestino->zona_id : $zonaDestino;
-                            
-                            // $viajeDetalleDestino->cliente_direccion_id = $cliente_direccion_destino_id == 0 ? $viajeDetalleDestino->cliente_direccion_id : $cliente_direccion_destino_id;
-                            
-                            $viajeDetalleDestino->fecha_entrada = isset($_fechaEntradaDestino) ? $_fechaEntradaDestino : $viajeDetalleDestino->fecha_entrada;
-                            $viajeDetalleDestino->fecha_salida = isset($_fechaSalidaDestino) ? $_fechaSalidaDestino : $viajeDetalleDestino->fecha_salida;
-                            $viajeDetalleDestino->estado = 0;
-                            $viajeDetalleDestino->fecha_edicion = date("Y-m-d H:i:s");
-                            $viajeDetalleDestino->semaforo_id = 0;
-                            $viajeDetalleDestino->cambio_estado_manual = 0;
-                            // $viajeDetalleDestino->macrozona_id = $macrozonaDestinoId == 0 ? $viajeDetalleDestino->macrozona_id : $macrozonaDestinoId;
-                            // $viajeDetalleDestino->m_zona_id = $m_zonaDestinoId == 0 ? $viajeDetalleDestino->m_zona_id : $m_zonaDestinoId;
-
-                            if (!$viajeDetalleDestino->save()){
-                                
-                                $bandera = 1;
-                            } else{
-                                
-                            }
-            
-                        }else{
-                            $bandera = 1;
-                        }
-            
-                        if ($bandera == 0) {
-
-                            $respuesta->estado = "ok";
-                            $respuesta->respuesta = "Viaje editado con exito: viaje_id = {$viaje->id}";
-                            $respuesta->id_viaje = $viaje->nro_viaje;
-                            $respuesta->mensaje = [];
-
-                            if ($_POST) {
-                                $datos = json_encode($_POST);
-                            }else{
-                                $datos = json_encode($data);
-                            }
-
-                            $this->insertarLogViajes($viaje->id, $datos, "Edicion de viaje con exito desde API", null);
-                            return $respuesta;
-                        }else{
-
-                            $respuesta->estado = "error";
-                            $respuesta->respuesta = "Error inesperado al editar el viaje";
-                            $respuesta->mensaje = [];
-                            return $respuesta;
-                        }
-
-                }else{
-                    $respuesta->estado = "error";
-                    $respuesta->respuesta = "API_KEY invalida";
-                    $respuesta->mensaje = [];
-                }
-            
-            
-                return $respuesta;
-            }
-        //fin edicion viajes
-
-        //crear paradas a un viaje
-            public function actionAnularviaje(){
-                date_default_timezone_set("America/Santiago");
-            
-                $key = $this->validarKey(getallheaders()["Autorizacion"]);
-
-    
-                $respuesta = new stdClass();
-                if ($key != null) {
-            
-                    if ($_POST) {
-                        $_nroViaje = isset($_POST["nro_viaje"]) ? $_POST["nro_viaje"] : null ;
-            
-                    }else{
-                        $post = file_get_contents('php://input');
-                        $data = json_decode($post);
-            
-                        $_nroViaje = isset($data->nro_viaje) ? $data->nro_viaje : null;
-            
-                    }
-                    
-                    //validaciones de requeridos
-                        $errores = [];
-            
-                        if (!isset($_nroViaje) || $_nroViaje =="" || $_nroViaje == null) {
-                            $errores[] = 'El campo nro_viaje es requerido';
-                        }
-            
-                        if (count($errores) > 0) {
-                            $respuesta->estado = "error";
-                            $respuesta->respuesta = "detalle errores";
-                            $respuesta->mensaje = $errores;
-                            return $respuesta;
-                        }
-                    //fin validaciones de requeridos
-            
-                    // if ($_POST) {
-                        // validar nro de viaje
-                            $viajeID = 0;
-                            $nroViaje = Viajes::find()->where(["nro_viaje" => $_nroViaje])->one();
-                            if (!$nroViaje) {
-                                $respuesta->estado = "error";
-                                $respuesta->respuesta = "No existe ningun viaje con este identificador";
-                                $respuesta->mensaje = [];
-                                return $respuesta;
-                            }else{
-                                $viajeID = $nroViaje->id;
-                            }
-                            
-                        // fin validar nro de viaje
-
-                    // }
-
-                    $viajeAnular = Viajes::find()->where(["id" => $viajeID])->one();
-
-                    if($viajeAnular){
-
-                        // $viajeAnular->nro_viaje = $viajeAnular->nro_viaje."_".date("Ymdhms"); 
-                        $viajeAnular->estatus_viaje_id = 9; 
-
-                        if($viajeAnular->save()){
-                            $respuesta->estado = "error";
-                            $respuesta->respuesta = "Viaje Anulado con exito: nro_viaje = {$_nroViaje}";
-                            $respuesta->mensaje = [];
-
-                            if ($_POST) {
-                                $datos = json_encode($_POST);
-                            }else{
-                                $datos = json_encode($data);
-                            }
-
-                            $this->insertarLogViajes($viajeID, $datos, "Anulación de viaje con exito desde API", null);
-                            return $respuesta;
-                        }else{
-                            $respuesta->estado = "error";
-                            $respuesta->respuesta = "error interno al anular el viaje";
-                            $respuesta->mensaje = [];
-                        }
-                    }else{
-                        $respuesta->estado = "error";
-                        $respuesta->respuesta = "No existe el viaje a anular";
-                        $respuesta->mensaje = [];
-                        return $respuesta;
-                    }
-                    
-                }else{
-                    $respuesta->estado = "error";
-                    $respuesta->respuesta = "API_KEY invalida";
-                    $respuesta->mensaje = [];
-                }
-            
-                return $respuesta;
-                
-            }
-        //fin crear paradas a un viaje
-
-
         // listado de viajes por vehiculo
-            public function actionListadoviajesvehiculo(){
+            public function actionListadoviajes(){
 
                 try {
                     $this->cabecerasGET();
@@ -2018,7 +321,7 @@ class IntegracionController extends Controller{
                             return $decodeToken;
                         }
                     }else{
-                        return $this->sendRequest(400, "error", "Token Invalido", ["token invalido"], $data);
+                        return $this->sendRequest(401, "error", "Token Invalido", ["token invalido"], $data);
                     }
         
                     $respuesta = new stdClass();
@@ -2032,9 +335,11 @@ class IntegracionController extends Controller{
                         $post = file_get_contents('php://input');
                         $data = json_decode($post);
     
-                        $_patente = isset($data->patente) ? $data->patente : null;
+                        // $_patente = isset($data->patente) ? $data->patente : null;
                         $_conductorId = isset($data->conductor_id) ? $data->conductor_id : null;
-                        $_accionOperacion = isset($data->accion_operacion) ? $data->accion_operacion : null;
+                        $_accion = isset($data->accion) ? $data->accion : null;
+                        $_fechaInicio = isset($data->fecha_inicio) ? $data->fecha_inicio. " 00:00:00" : null;
+                        $_fechaFin = isset($data->fecha_fin) ? $data->fecha_fin. " 23:59:59" : null;
                         $_subdominio = isset($data->subdominio) ? $data->subdominio : null;
             
                     }
@@ -2043,16 +348,26 @@ class IntegracionController extends Controller{
                     //validaciones de requeridos
                         $errores = [];
             
-                        if (!isset($_patente) || $_patente == "" || $_patente == null) {
-                            $errores[] = 'El campo patente es requerido';
-                        }
+                        // if (!isset($_patente) || $_patente == "" || $_patente == null) {
+                        //     $errores[] = 'El campo patente es requerido';
+                        // }
             
                         if (!isset($_conductorId) || $_conductorId == "" || $_conductorId == null) {
                             $errores[] = 'El campo conductor_id es requerido';
                         }
-                        if (!isset($_accionOperacion) || $_accionOperacion == "" || $_accionOperacion == null) {
-                            $errores[] = 'El campo accion_operacion es requerido';
+                        if (!isset($_accion) || $_accion == "" || $_accion == null) {
+                            $errores[] = 'El campo accion es requerido';
                         }
+                        // si la accion es todos, deben venir las fechas
+                            if($_accion == 1){
+                                if (!isset($_fechaInicio) || $_fechaInicio == "" || $_fechaInicio == null) {
+                                    $errores[] = 'El campo fecha_inicio es requerido';
+                                }
+                                if (!isset($_fechaFin) || $_fechaFin == "" || $_fechaFin == null) {
+                                    $errores[] = 'El campo fecha_fin es requerido';
+                                }
+                            }
+                        // fin si la accion es todos, deben venir las fechas
                         if (!isset($_subdominio) || $_subdominio == "" || $_subdominio == null) {
                             $errores[] = 'El campo subdominio es requerido';
                         }
@@ -2068,45 +383,22 @@ class IntegracionController extends Controller{
                         return $this->sendRequest(400, "error", $error, [$error], []);
                     }
     
-                    // validar vehiculo
-                        $patente = Vehiculos::find()->where(["patente" => $_patente])->andWhere(["fecha_borrado" => null])->one();
-    
-                        
-                        if (!$patente) {
-                            $error = "No existe esta patente asociada a ningun vehiculo";
-                            return $this->sendRequest(400, "error", $error, [$error], []);
-                        }else{
-                            $patenteId = $patente->id;
-                        }
-                    
-                    // fin validar vehiculo
-    
-                    // validar accion operacion para el caso
-                        if (isset($_accionOperacion) && $_accionOperacion != '') {
-        
-                            if (intval($_accionOperacion) > 2) {
-                                $accionOperacion = 0;
-                            }else{
-                                $accionOperacion = $_accionOperacion;
-                            }       
-                        }
-                
-                    // fin validar accion operacion para el caso
-    
+                    // validar accion operacion para el case
+                        $accionOperacion = $_accion;
+                        if (intval($_accion) > 1) {
+                            $accionOperacion = 0;
+                        }       
+                    // fin validar accion operacion para el case
     
                     switch ($accionOperacion) {
                         //viajes activos del dia actual
                         case 0:
-                            $model = Viajes::find()->where(['vehiculo_uno_id' => $patenteId, "conductor_id" => $_conductorId ])->andWhere(['BETWEEN', 'fecha_presentacion', date("Y-m-d 00:00:00"), date("Y-m-d 23:59:59")])->andWhere(["not in", "estatus_viaje_id", [1,6,9]])->orderBy(["id" => SORT_DESC])->all();   
+                            $model = Viajes::find()->where(["conductor_id" => $_conductorId ])->andWhere(['BETWEEN', 'fecha_presentacion', date("Y-m-d 00:00:00"), date("Y-m-d 23:59:59")])->andWhere(["not in", "estatus_viaje_id", [1,6,9]])->orderBy(["id" => SORT_DESC])->all();   
                             break;
-                        //viajes activos del dia de mañana
+                        //todos los viajes
                         case 1:
-                            $model = Viajes::find()->where(['vehiculo_uno_id' => $patenteId, "conductor_id" => $_conductorId ])->andWhere(['BETWEEN', 'fecha_presentacion', date("Y-m-d 00:00:00", strtotime("+1 day")), date("Y-m-d 23:59:59", strtotime("+1 day"))])->andWhere(["not in", "estatus_viaje_id", [1,6,9]])->orderBy(["id" => SORT_DESC])->all();  
+                            $model = Viajes::find()->where(["conductor_id" => $_conductorId ])->andWhere(['BETWEEN', 'fecha_presentacion', $_fechaInicio, $_fechaFin])->andWhere(["not in", "estatus_viaje_id", [1,6,9]])->orderBy(["id" => SORT_DESC])->all();  
                             break; 
-                        //viajes completados dia actual
-                        case 2:
-                            $model = Viajes::find()->where(['vehiculo_uno_id' => $patenteId, "conductor_id" => $_conductorId ])->andWhere(['BETWEEN', 'fecha_presentacion', date("Y-m-d 00:00:00"), date("Y-m-d 23:59:59")])->andWhere(['procesado' => true])->andWhere(["in", "estatus_viaje_id", [6]])->orderBy(["id" => SORT_DESC])->all();  
-                            break;
                     }
     
                     if ($model != NULL) {
@@ -2137,36 +429,34 @@ class IntegracionController extends Controller{
                             $viaje->conductor = $conductor;
                             $viaje->nro_carga = $carga;
                             $viaje->fecha_servidor = date("Y-m-d H:i:s");
+
+                            
+                            $viajePod = ViajePod::find()->where(["viaje_id" => $v->id])->one();
+                            
+                            $contadorPod = 0;
+                            $contadorNovedades = 0;
+                            if ($viajePod) {
+
+                                $viajePodDetalle = ViajePodDetalle::find()->where(["viaje_pod_id" => $viajePod->id])->all();
+                                foreach ($viajePodDetalle as $kvpd => $vvpd) {
+                                    $contadorPod++;
+                                }
     
+                            }
                             
                             $viajeDetalle = ViajeDetalle::find()->where(["viaje_id" => $v->id])->orderBy(["orden" => SORT_ASC])->all();
-                            if ($viajeDetalle) {
-                                $contadorPod = 0;
-                                $contadorSinPod = 0;
-                                $contadorNovedades = 0;
-                                foreach ($viajeDetalle as $key => $value) {
-    
-                                    // echo $value->id;exit;
-                                    $pod = ViajeDetallePod::find()->where(["viaje_detalle_id" => $value->id])->all();
-    
-                                    if ($pod) {
-                                        foreach ($pod as $vp) {
-                                            $contadorPod++;
-                                        }  
-                                    }
-    
-                                    $novedades = ViajeNovedades::find()->where(["viaje_detalle_id" => $value->id])->all();
-    
-                                    if ($novedades) {
-                                        foreach ($novedades as $vn) {
-                                            $contadorNovedades++;
-                                        }  
-                                    }
+
+                            foreach ($viajeDetalle as $kvdn => $vvdn) {
+                                $novedades = ViajeNovedades::find()->where(["viaje_detalle_id" => $vvdn->id])->all();
+
+                                if ($novedades) {
+                                    foreach ($novedades as $vn) {
+                                        $contadorNovedades++;
+                                    }  
                                 }
-                            }
-    
+                            }  
+
                             $viaje->contadorPOD = $contadorPod;
-                            $viaje->contadorSinPOD = $contadorSinPod;
                             $viaje->contadorNovedades = $contadorNovedades;
     
                             $destinos = [];
@@ -2215,17 +505,17 @@ class IntegracionController extends Controller{
                         switch ($accionOperacion) {
                             //viajes activos del dia actual
                             case 0:
-                                $mensaje = "No existen viajes asociados para esa patente, para hoy";
+                                $mensaje = "No existen viajes asociados al conductor, para hoy";
                                 return $this->sendRequest(404, "ok", $mensaje, [$mensaje], []);
                             break;
                             //viajes activos del dia de mañana
                             case 1:
-                                $mensaje = "No existen viajes asociados para esa patente, para mañana";
+                                $mensaje = "No existen viajes asociados al conductor, para mañana";
                                 return $this->sendRequest(404, "ok", $mensaje, [$mensaje], []);
                             break; 
                             //viajes completados dia actual
                             case 2:
-                                $mensaje = "No existen viajes asociados para esa patente, completados para hoy";
+                                $mensaje = "No existen viajes asociados al conductor, completados para hoy";
                                 return $this->sendRequest(404, "ok", $mensaje, [$mensaje], []);
                             break;
                         }
@@ -3112,562 +1402,6 @@ class IntegracionController extends Controller{
 
     // ////////////////////////////////////////////////// PARADAS ////////////////////////////////////////////////
 
-        //crear paradas a un viaje
-            public function actionCrearparadas(){
-                date_default_timezone_set("America/Santiago");
-            
-            
-                $key = $this->validarKey(getallheaders()["Autorizacion"]);
-                            
-                $respuesta = new stdClass();
-                if ($key != null) {
-            
-                    if ($_POST) {
-
-
-
-                        $_nroViaje = isset($_POST["nro_viaje"]) ? $_POST["nro_viaje"] : null ;
-                        $_poligonoParada = isset($_POST["poligono_parada"]) ? $_POST["poligono_parada"] : null ;
-                        $_fechaEntrada = isset($_POST["fecha_entrada"]) ? $_POST["fecha_entrada"] : null ;
-                        $_fechaSalida = isset($_POST["fecha_salida"]) ? $_POST["fecha_salida"] : null ;
-                        $_poligonoParadaAnterior = isset($_POST["poligono_parada_anterior"]) ? $_POST["poligono_parada_anterior"] : null;
-
-                
-            
-                    }else{
-                        $post = file_get_contents('php://input');
-                        $data = json_decode($post);
-            
-                        $_nroViaje = isset($data->nro_viaje) ? $data->nro_viaje : null;
-                        $_poligonoParada = isset($data->poligono_parada) ? $data->poligono_parada : null;
-                        $_fechaEntrada = isset($data->fecha_entrada) ? $data->fecha_entrada : null;
-                        $_fechaSalida = isset($data->fecha_salida) ? $data->fecha_salida : null;
-                        $_poligonoParadaAnterior = isset($data->poligono_parada_anterior) ? $data->poligono_parada_anterior : null;
-            
-                    }
-            
-                    //validaciones de requeridos
-                        // $requeridos = ['viaje_id','poligono_parada_anterior_id'];
-                        $errores = [];
-                        // foreach ($requeridos as $k => $v) {
-                        //     if (!isset($_POST[$v])) {
-                        //         $errores[] = 'El campo '.$v.' es requerido';
-                        //     }
-                        // }
-            
-                        if (!isset($_nroViaje) || $_nroViaje =="" || $_nroViaje == null) {
-                            $errores[] = 'El campo nro_viaje es requerido';
-                        }
-                        if (!isset($_poligonoParada) || $_poligonoParada =="" || $_poligonoParada == null) {
-                            $errores[] = 'El campo poligono_parada es requerido';
-                        }
-                        if (!isset($_poligonoParadaAnterior) || $_poligonoParadaAnterior =="" || $_poligonoParadaAnterior == null) {
-                            $errores[] = 'El campo poligono_parada_anterior es requerido';
-                        }
-            
-                        if (count($errores) > 0) {
-                            $respuesta->estado = "error";
-                            $respuesta->respuesta = "detalle errores";
-                            $respuesta->mensaje = $errores;
-                            return $respuesta;
-                        }
-                    //fin validaciones de requeridos
-            
-                    // if ($_POST) {
-                        // validar nro de viaje
-                            $viajeID = 0;
-                            $clienteId = 0;
-                            $nroViaje = Viajes::find()->where(["nro_viaje" => $_nroViaje])->one();
-                            if (!$nroViaje) {
-                                $respuesta->estado = "error";
-                                $respuesta->respuesta = "No existe ningun viaje con este identificador";
-                                $respuesta->mensaje = [];
-                                return $respuesta;
-                            }else{
-                                $clienteId = $nroViaje->cliente_id;
-                                $viajeID = $nroViaje->id;
-                            }
-                            
-                        // fin validar nro de viaje
-
-                        // validar direccion parada nueva
-                        $zonaParadaId = 0;
-                        $direccionParada = Zonas::find()->where(["id" => $_poligonoParada , "fecha_borrado" => null])->one();
-
-                        if (!$direccionParada) {
-                                // $nuevaDireccionParada = new ClienteDirecciones();
-                                // $nuevaDireccionParada->cliente_id = $clienteId;
-                                // $nuevaDireccionParada->zona_id = 65073; //id poligono ficticio fulltruck
-                                // $nuevaDireccionParada->direccion = $_poligonoParada;
-                                // $nuevaDireccionParada->fecha_creacion = date("Y-m-d H:i:s");
-                                // if($nuevaDireccionParada->save()){
-                                //     $cliente_poligono_parada_id = $nuevaDireccionParada->id;
-                                //     $zonaParadaId = $nuevaDireccionParada->zona_id;
-                                // }else{
-
-                                //     $respuesta->estado = "error";
-                                //     $respuesta->mensaje = "Error inesperado al crear la nueva dirección de parada.";
-                                //     return $respuesta;
-                                // }
-                                $respuesta->estado = "error";
-                                $respuesta->respuesta = "El polígono nuevo no existe en TMS";
-                                $respuesta->mensaje = [];
-                                return $respuesta;
-                            }else{
-                                // $cliente_poligono_parada_id = $direccionParada->id;
-                                $zonaParadaId = $direccionParada->id;
-                            }
-                            
-                        // fin validar direccion parada nueva
-            
-                        // validar fecha hora entrada
-                            if (isset($_fechaEntrada)) {
-                                $validarFechaEntrada = $this->validarFormatoFecha($_fechaEntrada, "Fecha entrada");
-                                if ($validarFechaEntrada != null) {
-                                    if ($validarFechaEntrada->estado == "error") {
-                                        return $validarFechaEntrada;
-                                    }
-                                }
-                            }
-                        // fin validar fecha hora entrada
-            
-                        // validar fecha hora salida
-                            if (isset($_fechaSalida)) {
-                                $validarFechaSalida = $this->validarFormatoFecha($_fechaSalida, "Fecha salida");
-                                if ($validarFechaSalida != null) {
-                                    if ($validarFechaSalida->estado == "error") {
-                                        return $validarFechaSalida;
-                                    }
-                                }
-                            }
-                        // fin validar fecha hora salida
-                            
-                        // validar direccion de parada anterior
-
-                            $viajeDetalleParadaAnterior = 0;
-
-                            $direccionParadaAnterior = Zonas::find()->where(["id" => $_poligonoParadaAnterior, "fecha_borrado" => null])->one();
-
-
-                            $viajeDetalle = ViajeDetalle::find()->where(["viaje_id" => $viajeID, "zona_id" => $direccionParadaAnterior->id])->orderBy(['orden'=>SORT_ASC])->one();
-
-                            if (!$viajeDetalle) {
-                                $respuesta->estado = "error";
-                                $respuesta->respuesta = "El polígono anterior no existe para este viaje.";
-                                $respuesta->mensaje = [];
-                                return $respuesta;
-                            }else{
-                                $viajeDetalleParadaAnterior = $viajeDetalle;
-                            }
-                        // fin validar direccion de parada anterior
-                        
-            
-                    // }
-
-                    $paradasMayoresA = ViajeDetalle::find()->where(["viaje_id" => $viajeID])->andWhere([">","orden", $viajeDetalleParadaAnterior->orden])->all();
-                                                
-                    foreach ($paradasMayoresA as $kPM => $vPM) {
-                        $vPM->orden =  $vPM->orden+1;
-                        $vPM->fecha_entrada_gps = null;
-                        $vPM->fecha_salida_gps = null;
-                        $vPM->estado =  0;
-                        $vPM->fecha_edicion = date("Y-m-d H:i:s");
-                        $vPM->semaforo_id = 0;
-                        $vPM->eta = null;
-                        $vPM->update();
-                    }
-                    
-                    $paradaNuevaInsertar = new ViajeDetalle();
-
-                    $paradaNuevaInsertar->viaje_id = $viajeID;
-                    $paradaNuevaInsertar->zona_id = $zonaParadaId; 
-                    $paradaNuevaInsertar->orden = $viajeDetalleParadaAnterior->orden +1;
-                    
-                    $paradaNuevaInsertar->fecha_entrada = null;
-                    //recalcular todas las paradas que siguen despues de esa, setear el viaje en asignado.
-                    if (isset($_fechaEntrada)) {
-                        $fechaE = explode(" ", $_fechaEntrada);
-                        $fechaEntrada = explode("-", $fechaE[0]);
-                        $paradaNuevaInsertar->fecha_entrada = $fechaEntrada[0]."-".$fechaEntrada[1]."-".$fechaEntrada[2]." ".$fechaE[1];
-                        
-                    }
-                    
-                    $paradaNuevaInsertar->fecha_salida = null;
-                    if (isset($_fechaSalida)) {
-                        $fechaS = explode(" ", $_fechaSalida);
-                        $fechaSalida = explode("-", $fechaS[0]);
-                        $paradaNuevaInsertar->fecha_salida = $fechaSalida[0]."-".$fechaSalida[1]."-".$fechaSalida[2]." ".$fechaS[1];
-                    }
-
-
-                    // $paradaNuevaInsertar->cliente_direccion_id = $cliente_poligono_parada_id;
-                    $paradaNuevaInsertar->estado = 0;
-                    $paradaNuevaInsertar->fecha_creado = date("Y-m-d H:i:s");
-                    $paradaNuevaInsertar->semaforo_id = 0;
-                    $paradaNuevaInsertar->cambio_estado_manual = 0;
-
-
-                    if($paradaNuevaInsertar->save()){
-                        
-                        if ($_POST) {
-                            $datos = json_encode($_POST);
-                        }else{
-                            $datos = json_encode($data);
-                        }
-
-                        $this->insertarLogViajes($viajeID, $datos, "Parada con exito creada desde API", $paradaNuevaInsertar->id);
-
-                        $respuesta->estado = "ok";
-                        $respuesta->respuesta = "Parada agregada con exito: nro_viaje = {$_nroViaje}";
-                        $respuesta->mensaje = [];
-                        return $respuesta;
-                    }else{
-
-                        // echo '<pre>';
-                        // var_dump($paradaNuevaInsertar->getErrors());
-                        // exit;
-                        if ($_POST) {
-                            $datos = json_encode($_POST);
-                        }else{
-                            $datos = json_encode($data);
-                        }
-
-                        $this->insertarLogViajes($viajeID, $datos, "Error creando parada desde api", null);
-
-                        $respuesta->estado = "error";
-                        $respuesta->respuesta = "Error inesperado al crear la parada";
-                        $respuesta->mensaje = [];
-                        return $respuesta;
-                    }
-
-                    // se busca la parada anterior a donde se quiere guardar la nueva parada
-                    // $viajeDetalleParadaAnterior = null;
-            
-                    // if($_poligonoParadaAnteriorId != ""){
-                    //     $viajeDetalleParadaAnterior = ViajeDetalle::find()->where(["viaje_id" => $_viajeId, "id" => $_poligonoParadaAnteriorId])->one();
-                        
-                    // }
-            
-                    
-                }else{
-                    $respuesta->estado = "error";
-                    $respuesta->respuesta = "API_KEY invalida";
-                    $respuesta->mensaje = [];
-                }
-            
-                return $respuesta;
-                
-            }
-        //fin crear paradas a un viaje
-
-        //Editar paradas a un viaje
-        public function actionEditarparada(){
-            date_default_timezone_set("America/Santiago");
-        
-            $key = $this->validarKey(getallheaders()["Autorizacion"]);
-
-            $respuesta = new stdClass();
-            if ($key != null) {
-        
-                if ($_POST) {
-
-                    $_nroViaje = isset($_POST["nro_viaje"]) ? $_POST["nro_viaje"] : null ;
-                    $_poligonoParada = isset($_POST["poligono_parada"]) ? $_POST["poligono_parada"] : null ;
-                    $_poligonoParadaNueva = isset($_POST["poligono_parada_nueva"]) ? $_POST["poligono_parada_nueva"] : null;
-                    $_fechaEntrada = isset($_POST["fecha_entrada"]) ? $_POST["fecha_entrada"] : null ;
-                    $_fechaSalida = isset($_POST["fecha_salida"]) ? $_POST["fecha_salida"] : null ;
-        
-                }else{
-                    $post = file_get_contents('php://input');
-                    $data = json_decode($post);
-        
-                    $_nroViaje = isset($data->nro_viaje) ? $data->nro_viaje : null;
-                    $_poligonoParada = isset($data->poligono_parada) ? $data->poligono_parada : null;
-                    $_poligonoParadaNueva = isset($data->poligono_parada_nueva) ? $data->poligono_parada_nueva : null;
-                    $_fechaEntrada = isset($data->fecha_entrada) ? $data->fecha_entrada : null;
-                    $_fechaSalida = isset($data->fecha_salida) ? $data->fecha_salida : null;
-                }
-        
-                //validaciones de requeridos
-                    // $requeridos = ['viaje_id','parada_anterior_id'];
-                    $errores = [];
-                    // foreach ($requeridos as $k => $v) {
-                    //     if (!isset($_POST[$v])) {
-                    //         $errores[] = 'El campo '.$v.' es requerido';
-                    //     }
-                    // }
-        
-                    if (!isset($_nroViaje) || $_nroViaje =="" || $_nroViaje == null) {
-                        $errores[] = 'El campo nro_viaje es requerido';
-                    }
-                    if (!isset($_poligonoParada) || $_poligonoParada =="" || $_poligonoParada == null) {
-                        $errores[] = 'El campo poligono_parada es requerido';
-                    }
-                    if (!isset($_poligonoParadaNueva) || $_poligonoParadaNueva =="" || $_poligonoParadaNueva == null) {
-                        $errores[] = 'El campo poligono_parada_nueva es requerido';
-                    }
-        
-                    if (count($errores) > 0) {
-                        $respuesta->estado = "error";
-                        $respuesta->respuesta = "detalle errores";
-                        $respuesta->mensaje = $errores;
-                        return $respuesta;
-                    }
-                //fin validaciones de requeridos
-        
-                // if ($_POST) {
-                    // validar nro de viaje
-                        $viajeID = 0;
-                        $clienteId = 0;
-                        $nroViaje = Viajes::find()->where(["nro_viaje" => $_nroViaje])->one();
-                        if (!$nroViaje) {
-                            $respuesta->estado = "error";
-                            $respuesta->respuesta = "No existe ningun viaje con este identificador";
-                            $respuesta->mensaje = [];
-                            return $respuesta;
-                        }else{
-                            $clienteId = $nroViaje->cliente_id;
-                            $viajeID = $nroViaje->id;
-                        }
-                        
-                    // fin validar nro de viaje
-
-                    // validar direccion parada nueva
-                        $zonaParadaId = 0;
-                        $poligonoParada = Zonas::find()->where(["id" => $_poligonoParadaNueva, "fecha_borrado" => null])->one();
-                        if (!$poligonoParada) {
-                            $respuesta->estado = "error";
-                            $respuesta->respuesta = "El id no está asociado a ningun poligono en TMS.";
-                            $respuesta->mensaje = [];
-                            return $respuesta;
-                        }else{
-                            $zonaParadaId = $poligonoParada->id;
-                        }
-                        
-                    // fin validar direccion parada nueva
-        
-                    // validar fecha hora entrada
-                        if (isset($_fechaEntrada)) {
-                            $validarFechaEntrada = $this->validarFormatoFecha($_fechaEntrada, "Fecha entrada");
-                            if ($validarFechaEntrada != null) {
-                                if ($validarFechaEntrada->estado == "error") {
-                                    return $validarFechaEntrada;
-                                }
-                            }
-                        }
-                    // fin validar fecha hora entrada
-        
-                    // validar fecha hora salida
-                        if (isset($_fechaSalida)) {
-                            $validarFechaSalida = $this->validarFormatoFecha($_fechaSalida, "Fecha salida");
-                            if ($validarFechaSalida != null) {
-                                if ($validarFechaSalida->estado == "error") {
-                                    return $validarFechaSalida;
-                                }
-                            }
-                        }
-                    // fin validar fecha hora salida
-                        
-                    // validar direccion de parada 
-
-                        $viajeDetalleParada = 0;
-
-                        $poligonoParadaAnterior = Zonas::find()->where(["id" => $_poligonoParada, "fecha_borrado" => null])->one();
-
-                        $viajeDetalle = ViajeDetalle::find()->where(["viaje_id" => $viajeID, "zona_id" => $poligonoParadaAnterior->id])->one();
-
-
-                        if (!$viajeDetalle) {
-                            $respuesta->estado = "error";
-                            $respuesta->respuesta = "El poligono a editar no existe para este viaje.";
-                            $respuesta->mensaje = [];
-                            return $respuesta;
-                        }else{
-                            $viajeDetalleParada = $viajeDetalle;
-                        }
-                    // fin validar direccion de parada 
-                    
-            
-                // }
-
-                $paradaAeditar = ViajeDetalle::find()->where(["viaje_id" => $viajeID, "id" => $viajeDetalleParada->id])->one();
-                                        
-
-                $paradaAeditar->zona_id = $zonaParadaId; 
-                
-                //recalcular todas las paradas que siguen despues de esa, setear el viaje en asignado.
-                if (isset($_fechaEntrada)) {
-                    $paradaAeditar->fecha_entrada = null;
-                    $fechaE = explode(" ", $_fechaEntrada);
-                    $fechaEntrada = explode("-", $fechaE[0]);
-                    $paradaAeditar->fecha_entrada = $fechaEntrada[2]."-".$fechaEntrada[1]."-".$fechaEntrada[0]." ".$fechaE[1];
-                }
-                
-                if (isset($_fechaSalida)) {
-                    $fechaS = explode(" ", $_fechaSalida);
-                    $paradaAeditar->fecha_salida = null;
-                    $fechaSalida = explode("-", $fechaS[0]);
-                    $paradaAeditar->fecha_salida = $fechaSalida[2]."-".$fechaSalida[1]."-".$fechaSalida[0]." ".$fechaS[1];
-                }
-
-
-                // $paradaAeditar->cliente_direccion_id = $cliente_direccion_parada_id;
-                $paradaAeditar->estado = 0;
-                $paradaAeditar->fecha_edicion = date("Y-m-d H:i:s");
-                $paradaAeditar->semaforo_id = 0;
-
-                if($paradaAeditar->save()){
-                    
-                    $respuesta->estado = "ok";
-                    $respuesta->respuesta = "Parada editada con exito: nro_viaje = {$_nroViaje}";
-                    $respuesta->mensaje = [];
-                    return $respuesta;
-                }else{
-                    $respuesta->estado = "error";
-                    $respuesta->respuesta = "Error inesperado al insertar la parada ";
-                    $respuesta->mensaje = [];
-                    return $respuesta;
-                }
-        
-                
-            }else{
-                $respuesta->estado = "error";
-                $respuesta->respuesta = "API_KEY invalida";
-                $respuesta->mensaje = [];
-            }
-        
-            return $respuesta;
-            
-        }
-        //fin Editar paradas a un viaje
-
-
-        // eliminar todas las paradas de un viaje
-            public function actionEliminarparada(){
-                date_default_timezone_set("America/Santiago");
-            
-                $key = $this->validarKey(getallheaders()["Autorizacion"]);
-
-                $respuesta = new stdClass();
-                if ($key != null) {
-            
-                    if ($_POST) {
-
-                        $_viajeId = isset($_POST["viaje_id"]) ? $_POST["viaje_id"] : null ;
-                        $_zonaId = isset($_POST["zona_id"]) ? $_POST["zona_id"] : null ;
-                
-            
-                    }else{
-                        $post = file_get_contents('php://input');
-                        $data = json_decode($post);
-            
-                        $_viajeId = isset($data->viaje_id) ? $data->viaje_id : null;
-                        $_zonaId = isset($data->zona_id) ? $data->zona_id : null;
-            
-                    }
-            
-                    //validaciones de requeridos
-                        $errores = [];
-
-                        if (!isset($_viajeId) || $_viajeId =="" || $_viajeId == null) {
-                            $errores[] = 'El campo viaje_id es requerido';
-                        }
-                        if (!isset($_zonaId) || $_zonaId =="" || $_zonaId == null) {
-                            $errores[] = 'El campo zona_id es requerido';
-                        }
-            
-                        if (count($errores) > 0) {
-                            $respuesta->estado = "error";
-                            $respuesta->respuesta = "detalle errores";
-                            $respuesta->mensaje = $errores;
-                            return $respuesta;
-                        }
-                    //fin validaciones de requeridos
-            
-                    // if ($_POST) {
-                        // validar nro de viaje
-                        $viajeID = 0;
-                            $viaje = Viajes::findOne($_viajeId);
-                            if (!$viaje) {
-                                $respuesta->estado = "error";
-                                $respuesta->respuesta = "No existe ningun viaje con este identificador";
-                                $respuesta->mensaje = [];
-                                return $respuesta;
-                            }else{
-                                $clienteId = $viaje->cliente_id;
-                                $viajeID = $viaje->id;
-                            }
-                            
-                        // fin validar nro de viaje
-                        
-                        // validar nro de viaje
-                            $viajeDetalle = ViajeDetalle::find()->where(["viaje_id" => $viajeID, "zona_id" => $_zonaId])->one();
-                            if (!$viajeDetalle) {
-                                $respuesta->estado = "error";
-                                $respuesta->respuesta = "No existe la zona asociada a ese viaje";
-                                $respuesta->mensaje = [];
-                                return $respuesta;
-                            }else{
-                                $zonaID = $viajeDetalle->zona_id;
-                            }
-                            
-                        // fin validar nro de viaje
-            
-
-                    // }
-
-
-                    $paradaAeliminar = ViajeDetalle::find()->where(["viaje_id" => $viajeID, "zona_id" => $zonaID])->one();
-                    
-                    $idParadaElimianr = $paradaAeliminar->id;
-                    if ($_POST) {
-                        $datos = json_encode($_POST);
-                    }else{
-                        $datos = json_encode($data);
-                    }
-
-                    
-                    if($paradaAeliminar){
-
-                        $paradaAeliminar->delete(); 
-
-                        $paradasModificarOrden = ViajeDetalle::find()->where(["viaje_id" => $viajeID])->orderBy(['orden' => SORT_ASC])->all();
-                        
-                        $i = 1;
-                        foreach ($paradasModificarOrden as $k => $v) {
-                            $v->orden =  $i;
-                            $v->update();
-                            $i++;
-                        }
-
-                        $respuesta->estado = "ok";
-                        $respuesta->respuesta =  "Parada eliminada con exito: viaje_id = {$viajeID}";
-                        $respuesta->mensaje = [];
-
-                        $this->insertarLogViajes($viajeID, $datos, "Eliminación de paradas", $idParadaElimianr);
-                        return $respuesta;
-                    }else{
-                        $respuesta->estado = "ok";
-                        $respuesta->respuesta = "No existe la parada a eliminar";
-                        $respuesta->mensaje = [];
-
-                        $this->insertarLogViajes($viajeID, $datos, "Sin paradas para eliminar", null);
-                        return $respuesta;
-                    }
-
-                
-                    
-                }else{
-                    $respuesta->estado = "error";
-                    $respuesta->respuesta = "API_KEY invalida";
-                    $respuesta->mensaje = [];
-                }
-            
-                return $respuesta;
-                
-            }
-        // fin eliminar todas las paradas de un viaje
-
         //detalle de una parada
             public function actionDetalleparada(){
 
@@ -3686,7 +1420,7 @@ class IntegracionController extends Controller{
     
                     }else{
                         $error = "Token Invalido";
-                        return $this->sendRequest(400, "error", $error, [$error], []);
+                        return $this->sendRequest(401, "error", $error, [$error], []);
                     }
     
                     // $key = $this->validarKey(getallheaders()["Autorizacion"]);
@@ -3851,7 +1585,7 @@ class IntegracionController extends Controller{
     
                     }else{                    
                         $error = "Token Invalido";
-                        return $this->sendRequest(400, "error", $error, [$error], []);
+                        return $this->sendRequest(401, "error", $error, [$error], []);
                     }
     
                     if ($_GET) {
@@ -3928,7 +1662,7 @@ class IntegracionController extends Controller{
     
                     }else{
                         $error = "Token Invalido";
-                        return $this->sendRequest(400, "error", $error, [$error], []);
+                        return $this->sendRequest(401, "error", $error, [$error], []);
                     }
     
                     // if ($key != null) {
@@ -4087,7 +1821,7 @@ class IntegracionController extends Controller{
     
                     }else{
                         $error = "Token Invalido";
-                        return $this->sendRequest(400, "error", $error, [$error], []);
+                        return $this->sendRequest(401, "error", $error, [$error], []);
                     }
     
                     if ($_GET) {
@@ -4208,7 +1942,7 @@ class IntegracionController extends Controller{
     
                     }else{
                         $error = "Token Invalido";
-                        return $this->sendRequest(400, "error", $error, [$error], []);
+                        return $this->sendRequest(401, "error", $error, [$error], []);
                     }
     
                 
@@ -4342,7 +2076,7 @@ class IntegracionController extends Controller{
     
                     }else{
                         $error = "Token Invalido";
-                        return $this->sendRequest(400, "error", $error, [$error], []);
+                        return $this->sendRequest(401, "error", $error, [$error], []);
                     }
     
                     $respuesta = new stdClass();
@@ -4416,7 +2150,7 @@ class IntegracionController extends Controller{
                         }
                     }else{
                         $error = "Token Invalido";
-                        return $this->sendRequest(400, "error", $error, [$error], []);
+                        return $this->sendRequest(401, "error", $error, [$error], []);
                     }
 
 
@@ -4703,22 +2437,6 @@ class IntegracionController extends Controller{
     // /////////////////////////////////////////////////// FIN ACCIONES ////////////////////////////////////////////
 
 
-    // ////////////////////////////////////////////////// REPORTES ///////////////////////////////////////////////////
-
-            // 
-
-    // ////////////////////////////////////////////////// FIN REPORTES ///////////////////////////////////////////////////
-
-
-
-    // ///////////////////////////////////////////////// API EXTERNAS ////////////////////////////////////////////////////
-
-        //vehiculos tms a taller o neumaticos
-
-
-    // ///////////////////////////////////////////////// FIN API EXTERNAS ////////////////////////////////////////////////////
-
-
     // funciones complementarias
         public function validarFormatoFecha($fecha, $tituloParada){
             
@@ -4851,10 +2569,10 @@ class IntegracionController extends Controller{
 
         }
 
-        public function getToken(){
+        public function getToken($tiempoMinutos){
 
             $tiempoCreacion = time(); //tiempo en que se creo el JWT
-            $exp = $tiempoCreacion + 60 * 60; //expiracion del token
+            $exp = $tiempoCreacion + 60 * $tiempoMinutos; //expiracion del token
             $payload = [
                 "iss" => "localhost",
                 "aud" => "localhost",
@@ -4949,9 +2667,14 @@ class IntegracionController extends Controller{
             header('Access-Control-Allow-Methods: GET');
         }
 
+        
+        
+    // fin  funciones complementarias
 
+
+    // INTEGRACION CON OS
         public function enviarPodOS($viaje_id){
-    
+        
             $viaje = Viajes::findOne($viaje_id);
             $configuracionGlobal = ConfiguracionGlobal::find()->one();
             $datos = new stdClass();
@@ -4961,7 +2684,7 @@ class IntegracionController extends Controller{
             $datos->nro_viaje = $viaje->nro_viaje;
             try {
                 $curl = curl_init();
-    
+
                 curl_setopt_array($curl, array(
                     CURLOPT_URL => "localhost/integracion-tms-os/web/integracion/". "pod",
                     CURLOPT_RETURNTRANSFER => true,
@@ -4976,16 +2699,16 @@ class IntegracionController extends Controller{
                         'Content-Type: application/json'
                     ),
                 ));
-    
+
                 $response = curl_exec($curl);
-    
+
                 curl_close($curl);
-    
+
                 $resOS =  json_decode($response, true);
-    
+
                 $info['request'] = $resOS["request"];
                 $info['response'] = $resOS["response"];
-    
+
                 if(count($info) > 0){
 
                     $log = new ViajesLog();
@@ -5002,10 +2725,10 @@ class IntegracionController extends Controller{
 
                     return 1;
                 }
-    
+
                 return 1;
             } catch (\Exception $e) {
-    
+
                 $log = new ViajesLog();
                     $log->viaje_id = $viaje_id;
                     $log->estatus_viaje_id = $viaje->estatus_viaje_id;
@@ -5022,9 +2745,10 @@ class IntegracionController extends Controller{
                 return 0;
             }
                 
-    
+
         }
-        
-    // fin  funciones complementarias
+    // FIN INTEGRACION CON OS
+
+
 
 }

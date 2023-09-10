@@ -52,6 +52,10 @@ class Bermann extends Component{
             break;
         }
 
+        // echo "<pre>";
+        // var_dump(Yii::$app->getDb());
+        // exit;
+
         return $res;
     }
 
