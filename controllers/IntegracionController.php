@@ -233,7 +233,7 @@ class IntegracionController extends Controller{
     //fin login desde app movil
 
     //valida patente y subdominio ingresados manualmente o por QR
-    public function actionValidarpatentesubdominio(){
+    public function actionValidarsubdominio(){
 
         try {
             $this->cabecerasPOST();
@@ -250,17 +250,13 @@ class IntegracionController extends Controller{
                 }else{
                     $post = file_get_contents('php://input');
                     $data = json_decode($post);
-        
-                    $_patente = isset($data->patente) ? $data->patente : null;
+
                     $_subdominio = isset($data->subdominio) ? $data->subdominio : null;
                 
                 }
 
                 $errores = [];
 
-                if (!isset($_patente) || $_patente =="" || $_patente == null) {
-                    $errores[] = 'El usuario es requerido';
-                }
                 if (!isset($_subdominio) || $_subdominio =="" || $_subdominio == null) {
                     $errores[] = 'El clave es requerido';
                 }
@@ -269,29 +265,13 @@ class IntegracionController extends Controller{
                     return $this->sendRequest(400, "error", "Campos requeridos", $errores, []);
                 }  
 
-                
                 $asignarBD = Yii::$app->bermann->asignarBD($_subdominio);
                 if(!$asignarBD->asignada){
                     $error = "Subdominio invalido";
                     return $this->sendRequest(400, "error", $error, [$error], []);
                 }
 
-                // validar vehiculo
-                    $patente = Vehiculos::find()->where(["patente" => strtoupper($_patente)])->andWhere(["fecha_borrado" => null])->one();
-    
-                    if (!$patente) {
-                        $error = "No existe esta patente asociada a ningún vehículo";
-                        return $this->sendRequest(404, "error", $error, [$error], []);
-                    }else{
-                        $patenteId = $patente->id;
-                    }
-                
-                // fin validar vehiculo
-                $data = [
-                    "patente" =>  $patente->patente,
-                    "muestra" =>  $patente->muestra,
-                ];
-                return $this->sendRequest(200, "ok", "Patente y subdominios válidos", [], $data);
+                return $this->sendRequest(200, "ok", "Subdominio válidos", [], []);
 
             }else{
                 return $this->sendRequest(400, "ok", "API_KEY invalida", ["API_KEY invalida"], $data);
