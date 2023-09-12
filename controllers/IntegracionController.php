@@ -1625,8 +1625,9 @@ class IntegracionController extends Controller{
 
         // agregar POD
             public function actionAgregarpod(){
-
-                $transaction = $db->beginTransaction();
+                
+                
+                
                 try {
                     $this->cabecerasPOST();
             
@@ -1705,8 +1706,8 @@ class IntegracionController extends Controller{
                         $error = "Subdominio invalido";
                         return $this->sendRequest(400, "error", $error, [$error], []);
                     }
-    
                     
+                    $transaction = $db->beginTransaction();
                     
                     $viajeID = $_idViaje;
     
@@ -1771,12 +1772,12 @@ class IntegracionController extends Controller{
                         $transaction->commit();                    
                         return $this->sendRequest(200, "ok", "Se agregó POD con éxito", [], []);
                     }else{
+                        $transaction->rollback();
                         // return $pruebaEntrega->getErrors();
                         $error = "Ha ocurrido un error al guardar POD";
                         return $this->sendRequest(400, "error", $error, [$error], []);
                     }
                 } catch (\Throwable $th) {
-                    $transaction->rollback();
                     $error = $th->getMessage();
                     return $this->sendRequest(500, "error", "Ha ocurrido un error en el servidor al procesar la solicitud", [$error], []);
                 }

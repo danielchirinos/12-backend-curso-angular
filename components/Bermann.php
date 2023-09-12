@@ -36,6 +36,7 @@ class Bermann extends Component{
 
         switch ($subdominio) {
             case 'interandinos':
+                $res->asignada = false;
                 $res->urlRecursosExternos = "https://interandinos.bermanntms.cl/";
                 Yii::$app->set('db', Yii::$app->db);
             break;
