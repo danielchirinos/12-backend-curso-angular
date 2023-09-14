@@ -2728,8 +2728,8 @@ class IntegracionController extends Controller{
         // }
         private function cabecerasGET(){
             header('Access-Control-Allow-Origin: *');
-            header("Access-Control-Allow-Headers: X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Request-Method,Access-Control-Request-Headers, Authorization, Autorizacion");
             header('Access-Control-Allow-Methods: GET, OPTIONS');
+            header("Access-Control-Allow-Headers: X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Request-Method,Access-Control-Request-Headers, Authorization, Autorizacion");
         }
 
         
