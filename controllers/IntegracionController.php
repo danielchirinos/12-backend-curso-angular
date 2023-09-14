@@ -306,15 +306,16 @@ class IntegracionController extends Controller{
         
                     $respuesta = new stdClass();
                     // if ($key != null) {
+
                     
                     if($_SERVER["REQUEST_METHOD"] == "GET"){
                         if ($_GET) {    
                             // $_patente = isset($data->patente) ? $data->patente : null;
-                            $_conductorId = isset($data->conductor_id) ? $data->conductor_id : null;
-                            $_accion = isset($data->accion) ? $data->accion : null;
-                            $_fechaInicio = isset($data->fecha_inicio) ? $data->fecha_inicio. " 00:00:00" : null;
-                            $_fechaFin = isset($data->fecha_fin) ? $data->fecha_fin. " 23:59:59" : null;
-                            $_subdominio = isset($data->subdominio) ? $data->subdominio : null;
+                            $_conductorId = isset($_GET["conductor_id"]) ? $_GET["conductor_id"] : null;
+                            $_accion = isset($_GET["accion"]) ? $_GET["accion"] : null;
+                            $_fechaInicio = isset($_GET["fecha_inicio"]) ? $_GET["fecha_inicio"]. " 00:00:00" : null;
+                            $_fechaFin = isset($_GET["fecha_fin"]) ? $_GET["fecha_fin"]. " 23:59:59" : null;
+                            $_subdominio = isset($_GET["subdominio"]) ? $_GET["subdominio"] : null;
                         }else{
                             // $error = "Servicio Innacceible";
                             // return $this->sendRequest(405, "error", $error, [$error], []);
