@@ -1562,7 +1562,7 @@ class IntegracionController extends Controller{
             public function actionEstadospod(){
                 
                 try {
-                    $this->cabecerasGET();
+                    $this->cabecerasPOST();
                         
                     date_default_timezone_set("America/Santiago");
                 
