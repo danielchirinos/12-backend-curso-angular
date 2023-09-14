@@ -290,7 +290,7 @@ class IntegracionController extends Controller{
             public function actionListadoviajes(){
 
                 try {
-                    $this->cabecerasGET();
+                    $this->cabecerasPOST();
                     date_default_timezone_set('America/Santiago');
                     $respuesta = new stdClass();
                     
