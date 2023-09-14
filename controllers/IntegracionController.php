@@ -2719,13 +2719,7 @@ class IntegracionController extends Controller{
                 die();
             }
         }
-       
-        // private function cabecerasGET(){
-        //     header('Access-Control-Allow-Origin: *');
-        //     header('Access-Control-Request-Headers: *');
-        //     header('Access-Control-Allow-Headers: *');
-        //     header('Access-Control-Allow-Methods: GET');
-        // }
+
         private function cabecerasGET(){
             header('Access-Control-Allow-Origin: *');
             header('Access-Control-Allow-Methods: GET, OPTIONS');
