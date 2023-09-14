@@ -309,15 +309,17 @@ class IntegracionController extends Controller{
                     
                     if($_SERVER["REQUEST_METHOD"] == "GET"){
                         if ($_GET) {    
-                            $error = "Servicio Innacceible";
-                            return $this->sendRequest(405, "error", $error, [$error], []);
+                            // $_patente = isset($data->patente) ? $data->patente : null;
+                            $_conductorId = isset($data->conductor_id) ? $data->conductor_id : null;
+                            $_accion = isset($data->accion) ? $data->accion : null;
+                            $_fechaInicio = isset($data->fecha_inicio) ? $data->fecha_inicio. " 00:00:00" : null;
+                            $_fechaFin = isset($data->fecha_fin) ? $data->fecha_fin. " 23:59:59" : null;
+                            $_subdominio = isset($data->subdominio) ? $data->subdominio : null;
                         }else{
+                            // $error = "Servicio Innacceible";
+                            // return $this->sendRequest(405, "error", $error, [$error], []);
                             $post = file_get_contents('php://input');
                             $data = json_decode($post);
-
-                            echo "<pre>";
-                            var_dump($data);
-                            exit;
         
                             // $_patente = isset($data->patente) ? $data->patente : null;
                             $_conductorId = isset($data->conductor_id) ? $data->conductor_id : null;
