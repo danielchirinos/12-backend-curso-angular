@@ -203,7 +203,7 @@ class IntegracionController extends Controller{
                     $token = getallheaders()["Authorization"];
                     $decodeToken = $this->decodeToken($token);
                     if($decodeToken->estado != "ok"){
-                        return $decodeToken;
+                        return $this->sendRequest(401, "error", "Token Vencido", ["token vencido"], []);
                     }
                 }else{
                     return $this->sendRequest(401, "error", "Token Invalido", ["token invalido"], $data);
@@ -298,7 +298,7 @@ class IntegracionController extends Controller{
                         $token = getallheaders()["Authorization"];
                         $decodeToken = $this->decodeToken($token);
                         if($decodeToken->estado != "ok"){
-                            return $decodeToken;
+                            return $this->sendRequest(401, "error", "Token Vencido", ["token vencido"], []);
                         }
                     }else{
                         return $this->sendRequest(401, "error", "Token Invalido", ["token invalido"], $data);
@@ -715,7 +715,7 @@ class IntegracionController extends Controller{
                     $token = getallheaders()["Authorization"];
                     $decodeToken = $this->decodeToken($token);
                     if($decodeToken->estado != "ok"){
-                        return $decodeToken;
+                        return $this->sendRequest(401, "error", "Token Vencido", ["token vencido"], []);
                     }
 
                 }else{
@@ -808,7 +808,7 @@ class IntegracionController extends Controller{
                     $token = getallheaders()["Authorization"];
                     $decodeToken = $this->decodeToken($token);
                     if($decodeToken->estado != "ok"){
-                        return $decodeToken;
+                        return $this->sendRequest(401, "error", "Token Vencido", ["token vencido"], []);
                     }
 
                 }else{
@@ -1019,7 +1019,7 @@ class IntegracionController extends Controller{
                     $token = getallheaders()["Authorization"];
                     $decodeToken = $this->decodeToken($token);
                     if($decodeToken->estado != "ok"){
-                        return $decodeToken;
+                        return $this->sendRequest(401, "error", "Token Vencido", ["token vencido"], []);
                     }
 
                 }else{
@@ -1196,7 +1196,7 @@ class IntegracionController extends Controller{
                     $token = getallheaders()["Authorization"];
                     $decodeToken = $this->decodeToken($token);
                     if($decodeToken->estado != "ok"){
-                        return $decodeToken;
+                        return $this->sendRequest(401, "error", "Token Vencido", ["token vencido"], []);
                     }
 
                 }else{
@@ -1405,7 +1405,7 @@ class IntegracionController extends Controller{
                         $token = getallheaders()["Authorization"];
                         $decodeToken = $this->decodeToken($token);
                         if($decodeToken->estado != "ok"){
-                            return $decodeToken;
+                            return $this->sendRequest(401, "error", "Token Vencido", ["token vencido"], []);
                         }
     
                     }else{
@@ -1570,7 +1570,7 @@ class IntegracionController extends Controller{
                         $token = getallheaders()["Authorization"];
                         $decodeToken = $this->decodeToken($token);
                         if($decodeToken->estado != "ok"){
-                            return $decodeToken;
+                            return $this->sendRequest(401, "error", "Token Vencido", ["token vencido"], []);
                         }
     
                     }else{                    
@@ -1648,7 +1648,7 @@ class IntegracionController extends Controller{
                         $token = getallheaders()["Authorization"];
                         $decodeToken = $this->decodeToken($token);
                         if($decodeToken->estado != "ok"){
-                            return $decodeToken;
+                            return $this->sendRequest(401, "error", "Token Vencido", ["token vencido"], []);
                         }
     
                     }else{
@@ -1876,7 +1876,7 @@ class IntegracionController extends Controller{
                         $token = getallheaders()["Authorization"];
                         $decodeToken = $this->decodeToken($token);
                         if($decodeToken->estado != "ok"){
-                            return $decodeToken;
+                            return $this->sendRequest(401, "error", "Token Vencido", ["token vencido"], []);
                         }
     
                     }else{
@@ -1997,7 +1997,7 @@ class IntegracionController extends Controller{
                         $token = getallheaders()["Authorization"];
                         $decodeToken = $this->decodeToken($token);
                         if($decodeToken->estado != "ok"){
-                            return $decodeToken;
+                            return $this->sendRequest(401, "error", "Token Vencido", ["token vencido"], []);
                         }
     
                     }else{
@@ -2131,7 +2131,7 @@ class IntegracionController extends Controller{
                         $token = getallheaders()["Authorization"];
                         $decodeToken = $this->decodeToken($token);
                         if($decodeToken->estado != "ok"){
-                            return $decodeToken;
+                            return $this->sendRequest(401, "error", "Token Vencido", ["token vencido"], []);
                         }
     
                     }else{
@@ -2206,7 +2206,7 @@ class IntegracionController extends Controller{
                         $token = getallheaders()["Authorization"];
                         $decodeToken = $this->decodeToken($token);
                         if($decodeToken->estado != "ok"){
-                            return $decodeToken;
+                            return $this->sendRequest(401, "error", "Token Vencido", ["token vencido"], []);
                         }
                     }else{
                         $error = "Token Invalido";
@@ -2325,7 +2325,7 @@ class IntegracionController extends Controller{
                     $token = getallheaders()["Authorization"];
                     $decodeToken = $this->decodeToken($token);
                     if($decodeToken->estado != "ok"){
-                        return $decodeToken;
+                        return $this->sendRequest(401, "error", "Token Vencido", ["token vencido"], []);
                     }
 
                 }else{
@@ -2376,7 +2376,7 @@ class IntegracionController extends Controller{
                     $token = getallheaders()["Authorization"];
                     $decodeToken = $this->decodeToken($token);
                     if($decodeToken->estado != "ok"){
-                        return $decodeToken;
+                        return $this->sendRequest(401, "error", "Token Vencido", ["token vencido"], []);
                     }
 
                 }else{
@@ -2451,7 +2451,7 @@ class IntegracionController extends Controller{
                     $token = getallheaders()["Authorization"];
                     $decodeToken = $this->decodeToken($token);
                     if($decodeToken->estado != "ok"){
-                        return $decodeToken;
+                        return $this->sendRequest(401, "error", "Token Vencido", ["token vencido"], []);
                     }
 
                 }else{
