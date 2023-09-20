@@ -165,7 +165,7 @@ class IntegracionController extends Controller{
                                     "email" => $model->email == null ? "" : $model->email,
                                     "telefono" => $model->telefono == null ? "" : $model->telefono,
                                     "token" => $token["token"],
-                                    "token_exp" => $token["exp"],
+                                    // "token_exp" => $token["exp"],
                                     "token_refresh" => $tokenRefresh["token"],
                                     // "token_refresh_exp" => $tokenRefresh["exp"],
                                 ];
