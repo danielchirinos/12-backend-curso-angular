@@ -165,7 +165,7 @@ class IntegracionController extends Controller{
                                     "email" => $model->email == null ? "" : $model->email,
                                     "telefono" => $model->telefono == null ? "" : $model->telefono,
                                     "token" => $token["token"],
-                                    // "token_exp" => $token["exp"],
+                                    "token_exp" => $token["exp"],
                                     "token_refresh" => $tokenRefresh["token"],
                                     // "token_refresh_exp" => $tokenRefresh["exp"],
                                 ];
@@ -210,8 +210,8 @@ class IntegracionController extends Controller{
                 }
 
                 $respuesta = new stdClass();
-                $token = $this->getToken(60); //crea un token con 1 hora de vigencia
-                $tokenRefresh = $this->getToken(300); //crea un token con 5 hora de vigencia
+                $token = $this->getToken(1); //crea un token con 1 hora de vigencia
+                $tokenRefresh = $this->getToken(5); //crea un token con 5 hora de vigencia
 
                 if ($token) {
                     $data = [
