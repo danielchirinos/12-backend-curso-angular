@@ -148,8 +148,8 @@ class IntegracionController extends Controller{
                             return $this->sendRequest(400, "error", $error, [$error], []);
                         }else{
 
-                            $token = $this->getToken(1); //crea un token con 1 hora de vigencia
-                            $tokenRefresh = $this->getToken(5); //crea un token con 5 hora de vigencia
+                            $token = $this->getToken(60); //crea un token con 1 hora de vigencia
+                            $tokenRefresh = $this->getToken(300); //crea un token con 5 hora de vigencia
 
                             if ($token) {
                                 if($model->foto == null){
@@ -332,7 +332,7 @@ class IntegracionController extends Controller{
                     }else{
                         $error = "Servicio Innacceible";
                         return $this->sendRequest(405, "error", $error, [$error], []);
-                    }
+                    }            
     
                         
                     //validaciones de requeridos
@@ -345,7 +345,7 @@ class IntegracionController extends Controller{
                         if (!isset($_conductorId) || $_conductorId == "" || $_conductorId == null) {
                             $errores[] = 'El campo conductor_id es requerido';
                         }
-                        if (!isset($_accion) || $_accion == "" || $_accion == null) {
+                        if (!isset($_accion) || $_accion === "" || $_accion === null) {
                             $errores[] = 'El campo accion es requerido';
                         }
                         // si la accion es todos, deben venir las fechas
@@ -361,7 +361,7 @@ class IntegracionController extends Controller{
                         if (!isset($_subdominio) || $_subdominio == "" || $_subdominio == null) {
                             $errores[] = 'El campo subdominio es requerido';
                         }
-            
+
                         if (count($errores) > 0) {
                             return $this->sendRequest(400, "error", "Campos Requeridos", $errores, []);
                         }
