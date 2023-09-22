@@ -1417,16 +1417,21 @@ class IntegracionController extends Controller{
     
                     
                     // if ($key != null) {
+
+                    if($_SERVER["REQUEST_METHOD"] == "GET"){
+                        if ($_GET) {    
+                            $_idParada = isset($_GET["id_parada"]) ? $_GET["id_parada"] : null;
+                            $_subdominio = isset($_GET["subdominio"]) ? $_GET["subdominio"] : null;
+                        }else{
+                            $post = file_get_contents('php://input');
+                            $data = json_decode($post);
                 
-                    if ($_GET) {
-                        $error = "Servicio Inaccesible";
-                        return $this->sendRequest(405, "error", $error, [$error], []);
+                            $_idParada = isset($data->id_parada) ? $data->id_parada : null;
+                            $_subdominio = isset($data->subdominio) ? $data->subdominio : null;
+                        }
                     }else{
-                        $post = file_get_contents('php://input');
-                        $data = json_decode($post);
-            
-                        $_idParada = isset($data->id_parada) ? $data->id_parada : null;
-                        $_subdominio = isset($data->subdominio) ? $data->subdominio : null;
+                        $error = "Servicio Innacceible";
+                        return $this->sendRequest(405, "error", $error, [$error], []);
                     }
             
                     //validaciones de requeridos
