@@ -2220,18 +2220,22 @@ class IntegracionController extends Controller{
 
 
                     // if ($key != null) {
+                    if($_SERVER["REQUEST_METHOD"] == "GET"){
+                        if ($_GET) {    
+                            $_viajeId = isset($_GET["id_viaje"]) ? $_GET["id_viaje"] : null;
+                            $_subdominio = isset($_GET["subdominio"]) ? $_GET["subdominio"] : null;
 
-                    if ($_GET) {
-                        $error = "Servicio Inaccesible";
-                        return $this->sendRequest(405, "error", $error, [$error], []);
-            
+                        }else{
+                            $post = file_get_contents('php://input');
+                            $data = json_decode($post);
+                
+                            $_viajeId = isset($data->id_viaje) ? $data->id_viaje : null;
+                            $_subdominio = isset($data->subdominio) ? $data->subdominio : null;
+                        }
                     }else{
-                        $post = file_get_contents('php://input');
-                        $data = json_decode($post);
-            
-                        $_viajeId = isset($data->id_viaje) ? $data->id_viaje : null;
-                        $_subdominio = isset($data->subdominio) ? $data->subdominio : null;
-                    }
+                        $error = "Servicio Innacceible";
+                        return $this->sendRequest(405, "error", $error, [$error], []);
+                    }     
 
 
                     $errores = [];
