@@ -3,47 +3,6 @@ apidoc -i controllers/ -o web/apidoc/
 
 http://localhost/sgv-api-interandinos/web
 
-//crear viajes
-{
-    "nro_viaje": "5",
-    "tipo_operacion": "Principal",
-    "tipo_servicio": "NOS CD Carozzi",
-    "rut": "96591040-9",
-    "cliente": "Empresas Carozzi S.A.",
-    "transportista_rut": "87666100-4",
-    "transportista_nombre": "Transportes Interandinos S.A.",
-    "conductor_uno_rut": "7378193-0",
-    "conductor_uno_nombre": "Leonardo Ramos",
-    "conductor_dos_rut": "7481655-k",
-    "conductor_dos_nombre": "Jorge Alvarado",
-    "vehiculo_uno": "PKKG-70",
-    "vehiculo_dos": "HGVJ-30",
-    "poligono_origen": "68764",
-    "tipo_carga": "910 - Devoluc. Antofag.",
-    "fecha_entrada_origen": "2021-07-27 00:00:00",
-    "fecha_salida_origen": "2021-07-27 00:00:01",
-    "poligono_destino": "68777",
-    "fecha_entrada_destino": "2021-07-27 00:00:02",
-    "fecha_salida_destino": "2021-07-27 00:00:03",
-    "cliente_facturador":"Empresas Carozzi S.A.",
-    "rut_facturador": "96591040-9",
-    "unidad_negocio": "Carozzi",
-    "tipo_carga_nombre": "910 - Devoluc. Antofag.",
-    "tipo_carga_codigo": "910"
-}
 
-apikey de interdev
+apikey de interdev produccion
 3b102283d57b960a2fd787baf9fac6a1
-
-
-// crear parada
-{
-    "nro_viaje" : "1-2-10",
-    "poligono_parada" : " direccion n",
-    "fecha_entrada" : "2020-05-19 10:00:00",
-    "fecha_salida" : "2020-05-19 11:00:00",
-    "poligono_parada_anterior" : "prueba direccion actualizada"
-}
-
-
----

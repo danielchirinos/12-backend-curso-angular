@@ -22,7 +22,8 @@
         "nickcv/yii2-mandrill": "*",
         "phpoffice/phpspreadsheet": "^1.9",
         "google/apiclient": "^2.0",
-        "firebase/php-jwt": "^5.5"
+        "firebase/php-jwt": "^5.5",
+        "aws/aws-sdk-php": "^3.173"
     },
     "require-dev": {
         "yiisoft/yii2-debug": "~2.1.0",
@@ -38,6 +39,9 @@
         "process-timeout": 1800,
         "fxp-asset": {
             "enabled": false
+        },
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true
         }
     },
     "scripts": {
