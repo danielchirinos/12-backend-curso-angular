@@ -4,6 +4,7 @@ namespace app\controllers;
 
 use Yii;
 use stdClass;
+use Aws\S3\S3Client;
 use app\models\Zonas;
 use Firebase\JWT\JWT;
 use yii\web\Response;
@@ -148,8 +149,8 @@ class IntegracionController extends Controller{
                             return $this->sendRequest(400, "error", $error, [$error], []);
                         }else{
 
-                            $token = $this->getToken(1); //crea un token con 1 hora de vigencia
-                            $tokenRefresh = $this->getToken(2); //crea un token con 5 hora de vigencia
+                            $token = $this->getToken(60); //crea un token con 1 hora de vigencia
+                            $tokenRefresh = $this->getToken(500); //crea un token con 5 hora de vigencia
 
                             if ($token) {
                                 if($model->foto == null){
@@ -1677,7 +1678,7 @@ class IntegracionController extends Controller{
                         $_nombreFirma = isset($data->nombre_firma) ? $data->nombre_firma : null;
                         $_rutFirma = isset($data->rut_firma) ? $data->rut_firma : null;
                         $_empresaFirma = isset($data->empresa_firma) ? $data->empresa_firma : null;
-                        // $_firma = isset($data->firma) ? $data->firma : null;
+                        $_observacion = isset($data->observacion) ? $data->observacion : null;
                         $_estatusPod = isset($data->estatus_pod) ? $data->estatus_pod : null;
                         $_subdominio = isset($data->subdominio) ? $data->subdominio : null;
             
@@ -1739,24 +1740,24 @@ class IntegracionController extends Controller{
     
                     $viajePod = ViajePod::find()->where(["viaje_id" => $viajeID])->one();
     
-                    $pruebaEntrega = new ViajeDetallePod();
                     if(!$viajePod){
-    
                         $viajePod->viaje_id = $viajeID;
                         $viajePod->estatus_pod_id =  5;
                         $viajePod->nombre_firma = $_nombreFirma;
                         $viajePod->rut_firma = $_rutFirma;
                         $viajePod->empresa_firma = $_empresaFirma;
                         $viajePod->fecha_creado =  date("Y-m-d H:i:s");
-                        if($viajePod->save()){
+                        if(!$viajePod->save()){
                             $transaction->rollback();
                             $error = "Ha ocurrido un error al guardar POD";
                             return $this->sendRequest(400, "error", $error, [$error], []);
                         }
                     }
+
+                    // se crear la instancia para guardar en el s3 de spaces
+                    $client = Yii::$app->bermann->setSpaces();
                     
                     //  validar fotos
-    
                         $i = 0;
                         foreach ($_fotos as $fp => $foto) {
                             
@@ -1767,20 +1768,28 @@ class IntegracionController extends Controller{
                             $foto = imagecreatefromstring(base64_decode($base64_string[1]));
             
                             // si el directorio no esta creado se crea
-                            if(!is_dir(Yii::getAlias('@webroot/documentos/viajes/pod/'.$viajeID))) {
-                                mkdir(Yii::getAlias('@webroot/documentos/viajes/pod/'.$viajeID));
-                            }
-                            
-                            //se guarda el nombre de la imagen
+                            // if(!is_dir(Yii::getAlias('@webroot/documentos/viajes/pod/'.$viajeID))) {
+                            //     mkdir(Yii::getAlias('@webroot/documentos/viajes/pod/'.$viajeID));
+                            // }
+
                             $nombrefoto = 'pod_'.$_idParada.'_'.date("Ymdhis").$i.'.png';
-                            //se guarda la iamgen en el directorio correspondiente
-                            if (imagepng($foto, Yii::getAlias('@webroot/documentos/viajes/pod/'.$viajeID.'/').$nombrefoto, 9)) {
-    
-                                $viajeDetallPod = new ViajeDetallePod();
+
+                              // se guarda en el s3 de spaces
+                            if (imagepng($foto, Yii::getAlias('@webroot/images/').$nombrefoto, 9)) {
+
+                                if(!Yii::$app->bermann->saveImagenSpaces($nombrefoto, $_subdominio)){
+                                    $transaction->rollback();
+                                    $error = "Ha ocurrido un error al guardar la imagen de POD";
+                                    return $this->sendRequest(400, "error", $error, [$error], []);
+                                }
+                               
+                                $viajeDetallPod = new ViajePodDetalle();
     
                                 $viajeDetallPod->viaje_pod_id = $viajePod->id;
                                 $viajeDetallPod->viaje_detalle_id = $_idParada;
                                 $viajeDetallPod->foto = $nombrefoto;
+                                $viajeDetallPod->observacion = $_observacion;
+                                $viajeDetallPod->validado = 0;
                                 $viajeDetallPod->estatus_pod_id = $_estatusPod;
                                 if(!$viajeDetallPod->save()){
                                     $transaction->rollback();
@@ -1788,6 +1797,8 @@ class IntegracionController extends Controller{
                                     return $this->sendRequest(400, "error", $error, [$error], []);
                                 }
                             }
+                            
+                            //se guarda el nombre de la imagen
     
                             $i++;
                         }
@@ -1805,65 +1816,7 @@ class IntegracionController extends Controller{
                     $error = $th->getMessage();
                     return $this->sendRequest(500, "error", "Ha ocurrido un error en el servidor al procesar la solicitud", [$error], []);
                 }
-                    
 
-                
-                // $viajeDetalle = ViajeDetalle::find()->where(["id" => $_idParada, "viaje_id" => $viajeID])->one();
-                // $pruebaEntrega = new ViajeDetallePod();
-                // $pruebaEntrega->viaje_detalle_id = $viajeDetalle->id;
-                // $pruebaEntrega->nombre_firma = $_nombreFirma;
-                // $pruebaEntrega->rut_firma = $_rutFirma;
-                // $pruebaEntrega->empresa_firma = $_empresaFirma;
-                // $pruebaEntrega->estatus_pod_id = $_estatusPod;
-                // $pruebaEntrega->fecha_creado = date("Y-m-d H:i:s");
-
-                // if ($pruebaEntrega->save()) {
-
-                //     // se envio el POD a onesigth
-                //     $resPOD = $this->enviarPodOS($viajeID);
-
-                //     //  validar fotos
-
-                //         $ii = 0;
-                //         foreach ($_fotos as $fp => $foto) {
-                            
-                //             //se hace un split a la cadena en , para tomar solo la imagen
-                //             $base64_string = explode(",",  $foto);
-            
-                //             //se crear una imagen desde el base 64
-                //             $foto = imagecreatefromstring(base64_decode($base64_string[1]));
-            
-                //             // si el directorio no esta creado se crea
-                //             if(!is_dir(Yii::getAlias('@webroot/documentos/viajes/pod/'.$viajeID))) {
-                //                 mkdir(Yii::getAlias('@webroot/documentos/viajes/pod/'.$viajeID));
-                //             }
-                            
-                //             //se guarda el nombre de la imagen
-                //             $nombrefoto = 'pod_'.$_idParada.'_'.date("Ymdhis").$ii.'.png';
-                //             //se guarda la iamgen en el directorio correspondiente
-                //             if (imagepng($foto, Yii::getAlias('@webroot/documentos/viajes/pod/'.$viajeID.'/').$nombrefoto, 9)) {
-
-                //                 $viajePodDetalleImagenes = new ViajeDetallePodDetalle();
-
-                //                 $viajePodDetalleImagenes->viaje_detalle_pod_id = $pruebaEntrega->id;
-                //                 $viajePodDetalleImagenes->foto = $nombrefoto;
-                //                 $viajePodDetalleImagenes->validado = 0;
-                //                 $viajePodDetalleImagenes->save();
-                //             }
-
-                //             $ii++;
-                //         }
-
-                //     // fin validar fotos
-
-                //     // $resPOD = json_decode($resPOD["respone"], true);
-
-                //     // $this->insertarLogViajes($viajeID, "{}", "Se agrego desde APP movil", $viajeDetalle->id)
-                //     // if($resPOD["status"] == 200){
-                //     //     $this->insertarLogViajes($viajeID, "{}", "Se agrego POD a OneSight", $viajeDetalle->id)
-                //     // }
-
-                        
 
             }
         // fin agregar POD
@@ -1888,20 +1841,22 @@ class IntegracionController extends Controller{
                         $error = "Token Invalido";
                         return $this->sendRequest(401, "error", $error, [$error], []);
                     }
-    
-                    if ($_GET) {
-                        $error = "Servicio Inaccesible";
-                        return $this->sendRequest(405, "error", $error, [$error], []);
-            
+
+                    if($_SERVER["REQUEST_METHOD"] == "GET"){
+                        if ($_GET) {    
+                            $_viajeId = isset($_GET["id_viaje"]) ? $_GET["id_viaje"] : null;
+                            $_subdominio = isset($_GET["subdominio"]) ? $_GET["subdominio"] : null;
+                        }else{
+                            $post = file_get_contents('php://input');
+                            $data = json_decode($post);
+                
+                            $_viajeId = isset($data->id_viaje) ? $data->id_viaje : null;
+                            $_subdominio = isset($data->subdominio) ? $data->subdominio : null;
+                        }
                     }else{
-                        $post = file_get_contents('php://input');
-                        $data = json_decode($post);
-            
-                        $_viajeId = isset($data->id_viaje) ? $data->id_viaje : null;
-                        $_subdominio = isset($data->subdominio) ? $data->subdominio : null;
-            
-                    }
-    
+                        $error = "Servicio Innacceible";
+                        return $this->sendRequest(405, "error", $error, [$error], []);
+                    }     
     
                     $errores = [];
             
@@ -1927,55 +1882,56 @@ class IntegracionController extends Controller{
                     $viaje = Viajes::find()->where(["id" => $_viajeId])->one();
     
                     if($viaje){
-    
-                        $viajeDetalle = ViajeDetalle::find()->where(["viaje_id" => $viaje->id])->orderBy(["orden" => SORT_ASC])->all();
-    
-                        if(count($viajeDetalle)>0){
-    
-                            $viajeDetalleId = [];
-    
-                            foreach ($viajeDetalle as $kvd => $vvd) {
-                                $viajeDetalleId[] = $vvd->id;
-                            }
-                            $viaje_pod = ViajeDetallePod::find()->where(["IN", "viaje_detalle_id", $viajeDetalleId])->orderBy(["id" => SORT_ASC])->all();
-                            
-                            if(count($viaje_pod) > 0){
-                                $datos = [];
-    
-                                // $url = str_replace("apidoc", "images", $_SERVER["HTTP_REFERER"]);
-                                foreach ($viaje_pod as $key => $value) {
-                                    $viajePod = new stdClass();
-                                    $viajePod->id = $value->id;
-                                    $viajePod->viaje_id = $viaje->id;
-                                    $viajePod->hr = $viaje->hojaRuta->nro_hr;
-                                    $viajePod->viaje_detalle_id = $value->viaje_detalle_id;
-                                    $viajePod->zona = $value->viajeDetalle->zona->nombre;
-                                    
-                                    $viajePodDetalleImagenes = ViajeDetallePodDetalle::find()->where(["IN", "viaje_detalle_pod_id", $value->id])->orderBy(["id" => SORT_ASC])->all();
-                                    $arregloFotos = [];
-                                    foreach ($viajePodDetalleImagenes as $kvpdi => $vpdi) {
-                                        $arregloFotos[$kvpdi]["imagen"] = $asignarBD->urlRecursosExternos."documentos/viajes/pod/".$viaje->id."/".$vpdi->foto;
-                                        $arregloFotos[$kvpdi]["estado"] = $vpdi->validado;
-                                    }
 
-                                    $viajePod->fotos = $arregloFotos;
-                                    $viajePod->nombre_firma = $value->nombre_firma;
-                                    $viajePod->rut_firma = $value->rut_firma;
-                                    $viajePod->empresa_firma = $value->empresa_firma;
-                                    $viajePod->estatus_pod = $value->estatusPod->nombre;
-                                    $viajePod->fecha_creado = $value->fecha_creado;
-                                    $datos[] = $viajePod;
+                        $viajePod = ViajePod::find()->where(["viaje_id" => $viaje->id])->one();
+
+                        if($viajePod){
+
+                            $viajePodDetalle = ViajePodDetalle::find()->where(["viaje_pod_id" => $viajePod->id])->all();
+
+                            $pod = new stdClass();
+                            $pod->viaje_id = $viajePod->viaje_id;
+                            $pod->estatus_pod = $viajePod->estatusPod->nombre;
+                            $pod->nombre_firma = $viajePod->nombre_firma;
+                            $pod->rut_firma = $viajePod->rut_firma;
+                            $pod->empresa_firma = $viajePod->empresa_firma;
+                            $pod->fecha_creacion = $viajePod->fecha_creado;
+
+                            $listaPod = [];
+                            foreach ($viajePodDetalle as $kvpd => $vvpd) {
+                                $podDetalle = new stdClass();
+                                $podDetalle->id = $vvpd->id;
+                                $podDetalle->viaje_id = $viaje->id;
+                                $podDetalle->hr = $viaje->hojaRuta->nro_hr;
+                                $podDetalle->viaje_detalle_id = $vvpd->viaje_detalle_id;
+                                $podDetalle->zona = $vvpd->viajeDetalle->zona->nombre;
+
+
+                                $imagen = json_decode(Yii::$app->bermann->getImagenSpaces($vvpd->foto, $_subdominio));
+
+                                if($imagen->codigo == 0){
+                                    $error = "Ha ocurrido un error al mostrar una imagen del detalle de POD";
+                                    return $this->sendRequest(400, "error", $error, [$error], []);
                                 }
-    
-                                // var_dump($_SERVER);exit;
-                                return $this->sendRequest(200, "ok", "Datos entregados", [], $datos);
-                            }else{
-                                $error = "El viaje no tiene POD asociadas";
-                                return $this->sendRequest(404, "ok", $error, [$error], []);
+                                
+                                $podDetalle->imagen = $imagen->url;
+                                $podDetalle->observacion = $vvpd->observacion;
+                                $podDetalle->validado = $vvpd->validado;
+
+                                $podDetalle->tipo_documento_pod = "sin asignar";
+                                if(isset($vvpd->tipoDocumentoPod)){
+                                    $podDetalle->tipo_documento_pod = $vvpd->tipoDocumentoPod->nombre;
+
+                                }
+                                $podDetalle->estatus_pod = $vvpd->estatusPod->nombre;
+                            
+                                $listaPod[] = $podDetalle;
                             }
-                        }else{
-                            $error = "Error al obtener POD del viaje";
-                            return $this->sendRequest(400, "error", $error, [$error], []);
+
+                            $pod->detalle_pod = $listaPod;
+
+                            return $this->sendRequest(200, "ok", "Datos entregados", [], $pod);
+
                         }
                         
                     }else{
