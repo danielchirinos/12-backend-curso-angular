@@ -31,6 +31,7 @@ phpunit.phar
 # /config/db.php
 /web/images/clientes/*
 /web/documentos
+/web/images
 /web/images/conductores/*
 
 tests/_output/*

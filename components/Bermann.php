@@ -80,18 +80,43 @@ class Bermann extends Component{
         return $client;
     }
 
-    public function saveImagenSpaces($nombreFoto, $subdominio){
+    private function getUrlSpeaces($categoria){
+
+        // primer nivel de la carpeta por año
+        $year = date("Y")."/";
+
+        // nombre del cliente donde se guardara las imagenes
+        $carpetaSpaceCliente = $this->asignarBD($subdominio)->carpetaSpaceCliente;
+
+        // la categoria es la carpeta donde se guardaran los datos, debe venir con /
+        // ejemplo:
+        // pod/, novedades/, etc
+
+        $url = $year.$carpetaSpaceCliente.$categoria;
+
+        return $url;
+    }
+
+    public function saveImagenSpaces($nombreFoto, $subdominio, $categoria){
         try {
-            $carpetaSpaceCliente = $this->asignarBD($subdominio)->carpetaSpaceCliente;
+            
+
+            $urlSpaces = $this->getUrlSpaces($categoria);
 
             $client = $this->setSpaces();
+
+            $parthLocal = Yii::getAlias('@webroot/images/') . $nombreFoto;
     
             $cmd = $client->putObject([
                 'Bucket' => 'tmscdn',
-                'Key'    => $carpetaSpaceCliente.$nombreFoto,
-                'SourceFile' => Yii::getAlias('@webroot/images/') . $nombreFoto,
+                'Key'    => $urlSpaces.$nombreFoto,
+                'SourceFile' => $parthLocal,
                 'ACL'    => 'public-read'
             ]);
+
+            // se elimina la imagen local despues de subirla al spaces
+            unlink($parthLocal);
+
             return 1;
         } catch (\Throwable $th) {
            return 0;
