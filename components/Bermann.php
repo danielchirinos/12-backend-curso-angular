@@ -72,19 +72,20 @@ class Bermann extends Component{
             'endpoint' => 'https://nyc3.digitaloceanspaces.com',
             'use_path_style_endpoint' => false, // Configures to use subdomain/virtual calling format.
             'credentials' => [
-                    'key'    => "DO00YJUHRXYPA6ZP7VML",
-                    'secret' => "7yd/v7ydKoHkG6Xe/dqQyFXxjN/rSrRzU75z3HeVmWU",
+                    'key'    => Yii::$app->params['keySpacesDo'],
+                    'secret' => Yii::$app->params['secreKeySpacesDo'],
                 ],
         ]);
 
         return $client;
     }
 
-    private function getUrlSpeaces($categoria){
+    private function getUrlSpaces($subdominio, $categoria){
 
+        
         // primer nivel de la carpeta por año
-        $year = date("Y")."/";
-
+        $year = date("Y_m")."/";
+        
         // nombre del cliente donde se guardara las imagenes
         $carpetaSpaceCliente = $this->asignarBD($subdominio)->carpetaSpaceCliente;
 
@@ -100,8 +101,7 @@ class Bermann extends Component{
     public function saveImagenSpaces($nombreFoto, $subdominio, $categoria){
         try {
             
-
-            $urlSpaces = $this->getUrlSpaces($categoria);
+            $urlSpaces = $this->getUrlSpaces($subdominio, $categoria);
 
             $client = $this->setSpaces();
 
