@@ -384,9 +384,9 @@ class IntegracionController extends Controller{
                     switch ($accionOperacion) {
                         //viajes activos del dia actual
                         case 0:
-                            $model = Viajes::find()->where(["conductor_id" => $_conductorId ])->andWhere(['BETWEEN', 'fecha_presentacion', date("Y-m-d 00:00:00"), date("Y-m-d 23:59:59")])->andWhere(["not in", "estatus_viaje_id", [1,6,9]])->orderBy(["id" => SORT_DESC])->all();   
+                            $model = Viajes::find()->where(["conductor_id" => $_conductorId ])->andWhere(['BETWEEN', 'fecha_presentacion', date("Y-m-d 00:00:00"), date("Y-m-d 23:59:59")])->andWhere(["not in", "estatus_viaje_id", [1,9]])->orderBy(["id" => SORT_DESC])->all();   
                             break;
-                            
+
                         //todos los viajes
                         case 1:
                             $model = Viajes::find()->where(["conductor_id" => $_conductorId ])->andWhere(['BETWEEN', 'fecha_presentacion', $_fechaInicio, $_fechaFin])->andWhere(["not in", "estatus_viaje_id", [1,9]])->orderBy(["id" => SORT_DESC])->all();  
@@ -502,7 +502,7 @@ class IntegracionController extends Controller{
                             break;
                             //viajes activos del dia de mañana
                             case 1:
-                                $mensaje = "No existen viajes asociados al conductor, para mañana";
+                                $mensaje = "No existe historial de viajes para el Conductor";
                                 return $this->sendRequest(404, "ok", $mensaje, [$mensaje], []);
                             break; 
                             //viajes completados dia actual
