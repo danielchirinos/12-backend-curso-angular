@@ -386,9 +386,10 @@ class IntegracionController extends Controller{
                         case 0:
                             $model = Viajes::find()->where(["conductor_id" => $_conductorId ])->andWhere(['BETWEEN', 'fecha_presentacion', date("Y-m-d 00:00:00"), date("Y-m-d 23:59:59")])->andWhere(["not in", "estatus_viaje_id", [1,6,9]])->orderBy(["id" => SORT_DESC])->all();   
                             break;
+                            
                         //todos los viajes
                         case 1:
-                            $model = Viajes::find()->where(["conductor_id" => $_conductorId ])->andWhere(['BETWEEN', 'fecha_presentacion', $_fechaInicio, $_fechaFin])->andWhere(["not in", "estatus_viaje_id", [1,6,9]])->orderBy(["id" => SORT_DESC])->all();  
+                            $model = Viajes::find()->where(["conductor_id" => $_conductorId ])->andWhere(['BETWEEN', 'fecha_presentacion', $_fechaInicio, $_fechaFin])->andWhere(["not in", "estatus_viaje_id", [1,9]])->orderBy(["id" => SORT_DESC])->all();  
                             break; 
                     }
     
@@ -1907,7 +1908,7 @@ class IntegracionController extends Controller{
                                 $podDetalle->zona = $vvpd->viajeDetalle->zona->nombre;
 
 
-                                $imagen = json_decode(Yii::$app->bermann->getImagenSpaces($vvpd->foto, $_subdominio));
+                                $imagen = json_decode(Yii::$app->bermann->getImagenSpaces($vvpd->foto, $_subdominio, "pod/"));
 
                                 if($imagen->codigo == 0){
                                     $error = "Ha ocurrido un error al mostrar una imagen del detalle de POD";
@@ -2005,18 +2006,28 @@ class IntegracionController extends Controller{
                         if (count($errores) > 0) {
                             return $this->sendRequest(400, "error", "Campos Requeridos", [$errores], []);
                         }
+                        
                     //fin validaciones de requeridos
-    
-    
+
+
                     $asignarBD = Yii::$app->bermann->asignarBD($_subdominio);
                     if(!$asignarBD->asignada){
                         $error = "Subdominio invalido";
                         return $this->sendRequest(400, "error", $error, [$error], []);
                     }
 
+                    $db = Yii::$app->get('db', Yii::$app->db);
+                    $transaction = $db->beginTransaction();
+
+                } catch (\Throwable $th) {
+                    $error = $th->getMessage();
+                    return $this->sendRequest(500, "error", "Ha ocurrido un error en el servidor al procesar la solicitud", [$error], []);
+                }
+                
+                
+                try {
+                    
                     //  validar fotos
-    
-                        
                         $fotos =  '';
                         
                         $ii = 0;
@@ -2030,15 +2041,26 @@ class IntegracionController extends Controller{
                                 $foto = imagecreatefromstring(base64_decode($base64_string[1]));
                 
                                 // si el directorio no esta creado se crea
-                                if(!is_dir(Yii::getAlias('@webroot/documentos/viajes/novedades/'.$_viajeId))) {
-                                    mkdir(Yii::getAlias('@webroot/documentos/viajes/novedades/'.$_viajeId));
-                                }
+                                // if(!is_dir(Yii::getAlias('@webroot/documentos/viajes/novedades/'.$_viajeId))) {
+                                //     mkdir(Yii::getAlias('@webroot/documentos/viajes/novedades/'.$_viajeId));
+                                // }
                                 
                                 //se guarda el nombre de la imagen
                                 $nombrefoto = 'novedades_'.$_paradaId.'_'.date("Ymdhis").$ii.'.png';
                                 //se guarda la iamgen en el directorio correspondiente
-                                if (imagepng($foto, Yii::getAlias(Yii::getAlias('@webroot/documentos/viajes/novedades/'.$_viajeId.'/').$nombrefoto, 9))) {
+                                if (imagepng($foto, Yii::getAlias(Yii::getAlias('@webroot/images/').$nombrefoto, 9))) {
+
+                                    if(!Yii::$app->bermann->saveImagenSpaces($nombrefoto, $_subdominio, "novedades/")){
+                                        $transaction->rollback();
+                                        $error = "Ha ocurrido un error al guardar la imagen de la Novedad";
+                                        return $this->sendRequest(400, "error", $error, [$error], []);
+                                    }
+
                                     $fotos .= $nombrefoto.',';
+                                }else{
+                                    $transaction->rollback();
+                                    $error = "Ha ocurrido un error al guardar la imagen de la Novedad";
+                                    return $this->sendRequest(400, "error", $error, [$error], []);
                                 }
                 
                                 $ii++;
@@ -2054,13 +2076,12 @@ class IntegracionController extends Controller{
         
                     $viaje_novedades->viaje_detalle_id = $viajeDetalle->id;
                     $viaje_novedades->subestatus_viaje_id = $_subestatusViajeId;
-                    // $viaje_novedades->substatus_viaje_motivo_id = $subestatusMotivoId;
                     $viaje_novedades->fotos = trim($fotos,',');
                     $viaje_novedades->observaciones = $_observaciones;
                     $viaje_novedades->fecha_creacion = date("Y-m-d H:i:s");
     
                     if ($viaje_novedades->save()) {
-    
+                        $transaction->commit();
                         $viaje = Viajes::find()->where(["id" => $_viajeId])->one();
                         $viaje->subestatus_viaje_id = $viaje_novedades->subestatus_viaje_id;
                         $viaje->save();
@@ -2068,10 +2089,12 @@ class IntegracionController extends Controller{
                         //******************************************************** */ insertar log y auditoria
                         return $this->sendRequest(200, "ok", "Se agregó Novedad con éxito", [], []);
                     }else{
+                        $transaction->rollback();
                         $error = "Ha ocurrido un error al guardar la novedad";
                         return $this->sendRequest(400, "error", $error, [$error], []);
                     }
                 } catch (\Throwable $th) {
+                    $transaction->rollback();
                     $error = $th->getMessage();
                     return $this->sendRequest(500, "error", "Ha ocurrido un error en el servidor al procesar la solicitud", [$error], []);
                 }
@@ -2244,10 +2267,17 @@ class IntegracionController extends Controller{
                                     $viajeNovedades->subestatus_viaje_id = $value->subestatusViaje->nombre;
                                     $fotos = explode(",", $value->fotos);
                                     $fotosArr = [];
-
+                                    
                                     foreach ($fotos as $kf => $vf) {
                                         if($vf != ""){
-                                            $fotosArr[] = $asignarBD->urlRecursosExternos."documentos/viajes/novedades/".$viaje->id."/".$vf;
+                                            $imagen = json_decode(Yii::$app->bermann->getImagenSpaces($vf, $_subdominio, "novedades/"));
+
+                                            if($imagen->codigo == 0){
+                                                $error = "Ha ocurrido un error al mostrar una imagen de novedad";
+                                                return $this->sendRequest(400, "error", $error, [$error], []);
+                                            }
+
+                                            $fotosArr[] = $imagen->url;
                                         }
                                     }
 

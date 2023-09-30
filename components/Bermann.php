@@ -38,7 +38,8 @@ class Bermann extends Component{
 
         switch ($subdominio) {
             case 'interandinos':
-                $res->asignada = false; //esto se debe eliminar cuando se suba a produccion
+                
+                $res->asignada = false; TODO://esto se debe eliminar cuando se suba a produccion
                 $res->urlRecursosExternos = "https://interandinos.bermanntms.cl/";
                 $res->carpetaSpaceCliente = "interandinos/";
                 Yii::$app->set('db', Yii::$app->db);
@@ -123,22 +124,23 @@ class Bermann extends Component{
         }
     }
 
-    public function getImagenSpaces($nombreFoto, $subdominio){
+    public function getImagenSpaces($nombreFoto, $subdominio, $categoria){
 
         $res  = new stdClass();
         $res->codigo = 0;
         $res->url = "";
         try {
-            $carpetaSpaceCliente = $this->asignarBD($subdominio)->carpetaSpaceCliente;
+
+            $urlSpaces = $this->getUrlSpaces($subdominio, $categoria);
 
             $spaces = $this->setSpaces();
 
             $cmd = $spaces->getCommand('GetObject', [
                 'Bucket' => 'tmscdn',
-                'Key'    => $carpetaSpaceCliente.$nombreFoto
+                'Key'    => $urlSpaces.$nombreFoto
             ]);
 
-            $imageUrl = $spaces->getObjectUrl("tmscdn", $carpetaSpaceCliente.$nombreFoto);
+            $imageUrl = $spaces->getObjectUrl("tmscdn", $urlSpaces.$nombreFoto);
     
 
             // $request = $spaces->createPresignedRequest($cmd, '+60 minutes');
