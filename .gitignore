@@ -24,7 +24,7 @@ composer.phar
 
 config/db.php
 
-/web/images
+/web/images/¨*
 
 # phpunit itself is not needed
 phpunit.phar
