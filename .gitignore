@@ -24,6 +24,8 @@ composer.phar
 
 config/db.php
 
+/web/images
+
 # phpunit itself is not needed
 phpunit.phar
 # local phpunit config
