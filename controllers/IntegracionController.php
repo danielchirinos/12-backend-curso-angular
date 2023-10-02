@@ -1584,7 +1584,7 @@ class IntegracionController extends Controller{
                         $error = "Token Invalido";
                         return $this->sendRequest(401, "error", $error, [$error], []);
                     }
-                    
+
                     if($_SERVER["REQUEST_METHOD"] == "GET"){
                         if ($_GET) {    
                             $_subdominio = isset($_GET["subdominio"]) ? $_GET["subdominio"] : null;
@@ -1862,7 +1862,7 @@ class IntegracionController extends Controller{
                         $error = "Servicio Innacceible";
                         return $this->sendRequest(405, "error", $error, [$error], []);
                     }     
-    
+                   
                     $errores = [];
             
                     if (!isset($_viajeId) || $_viajeId == "" || $_viajeId == null) {
@@ -1885,13 +1885,13 @@ class IntegracionController extends Controller{
     
     
                     $viaje = Viajes::find()->where(["id" => $_viajeId])->one();
-    
+                    
                     if($viaje){
-
+                        
                         $viajePod = ViajePod::find()->where(["viaje_id" => $viaje->id])->one();
-
+                        
                         if($viajePod){
-
+                            
                             $viajePodDetalle = ViajePodDetalle::find()->where(["viaje_pod_id" => $viajePod->id])->all();
 
                             $pod = new stdClass();
@@ -1937,6 +1937,9 @@ class IntegracionController extends Controller{
 
                             return $this->sendRequest(200, "ok", "Datos entregados", [], $pod);
 
+                        }else{
+                            $error = "No existen pod asociadas a este viaje";
+                            return $this->sendRequest(404, "error", $error, [$error], []);
                         }
                         
                     }else{
