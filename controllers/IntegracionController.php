@@ -1785,7 +1785,8 @@ class IntegracionController extends Controller{
                               // se guarda en el s3 de spaces
                             if (imagepng($foto, Yii::getAlias('@webroot/images/').$nombrefoto, 9)) {
 
-                                if(!Yii::$app->bermann->saveImagenSpaces($nombrefoto, $_subdominio, "pod/")){
+                                $ubicacion = "pod/". $viajeID."/";
+                                if(!Yii::$app->bermann->saveImagenSpaces($nombrefoto, $_subdominio, $ubicacion)){
                                     $transaction->rollback();
                                     $error = "Ha ocurrido un error al guardar la imagen de POD";
                                     return $this->sendRequest(400, "error", $error, [$error], []);
@@ -1915,8 +1916,8 @@ class IntegracionController extends Controller{
                                 $podDetalle->viaje_detalle_id = $vvpd->viaje_detalle_id;
                                 $podDetalle->zona = $vvpd->viajeDetalle->zona->nombre;
 
-
-                                $imagen = json_decode(Yii::$app->bermann->getImagenSpaces($vvpd->foto, $_subdominio, "pod/"));
+                                $ubicacion = "pod/".$viaje->id."/";
+                                $imagen = json_decode(Yii::$app->bermann->getImagenSpaces($vvpd->foto, $_subdominio, $ubicacion));
 
                                 if($imagen->codigo == 0){
                                     $error = "Ha ocurrido un error al mostrar una imagen del detalle de POD";
