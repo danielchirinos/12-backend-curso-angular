@@ -1743,7 +1743,8 @@ class IntegracionController extends Controller{
                     $viajeID = $_idViaje;
     
                     $viajePod = ViajePod::find()->where(["viaje_id" => $viajeID])->one();
-    
+                    
+                    $viajePodId = 0;
                     if(!$viajePod){
                         $viajePodNuevo = new ViajePod();
                         $viajePodNuevo->viaje_id = $viajeID;
@@ -1757,6 +1758,9 @@ class IntegracionController extends Controller{
                             $error = "Ha ocurrido un error al guardar POD";
                             return $this->sendRequest(400, "error", $error, [$error], []);
                         }
+                        $viajePodId = $viajePodNuevo->id;
+                    }else{
+                        $viajePodId = $viajePod->id;
                     }
 
                     
@@ -1788,7 +1792,7 @@ class IntegracionController extends Controller{
                                
                                 $viajeDetallPod = new ViajePodDetalle();
     
-                                $viajeDetallPod->viaje_pod_id = $viajePod->id;
+                                $viajeDetallPod->viaje_pod_id = $viajePodId;
                                 $viajeDetallPod->viaje_detalle_id = $_idParada;
                                 $viajeDetallPod->foto = $nombrefoto;
                                 $viajeDetallPod->observacion = $_observacion;
