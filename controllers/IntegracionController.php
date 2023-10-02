@@ -1745,6 +1745,7 @@ class IntegracionController extends Controller{
                     $viajePod = ViajePod::find()->where(["viaje_id" => $viajeID])->one();
                     
                     $viajePodId = 0;
+                    //si no existe, se crea la cabecera del POD
                     if(!$viajePod){
                         $viajePodNuevo = new ViajePod();
                         $viajePodNuevo->viaje_id = $viajeID;
