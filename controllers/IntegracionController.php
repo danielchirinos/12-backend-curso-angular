@@ -1584,14 +1584,18 @@ class IntegracionController extends Controller{
                         $error = "Token Invalido";
                         return $this->sendRequest(401, "error", $error, [$error], []);
                     }
-    
-                    if ($_GET) {
-                        $error = "Servicio Inaccesible";
-                        return $this->sendRequest(405, "error", $error, [$error], []);
+                    
+                    if($_SERVER["REQUEST_METHOD"] == "GET"){
+                        if ($_GET) {    
+                            $_subdominio = isset($_GET["subdominio"]) ? $_GET["subdominio"] : null;
+                        }else{
+                            $post = file_get_contents('php://input');
+                            $data = json_decode($post);
+                            $_subdominio = isset($data->subdominio) ? $data->subdominio : null;
+                        }
                     }else{
-                        $post = file_get_contents('php://input');
-                        $data = json_decode($post);
-                        $_subdominio = isset($data->subdominio) ? $data->subdominio : null;
+                        $error = "Servicio Innacceible";
+                        return $this->sendRequest(405, "error", $error, [$error], []);
                     }
             
                     //validaciones de requeridos
