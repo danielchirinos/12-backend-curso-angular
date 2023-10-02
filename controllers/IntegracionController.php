@@ -1729,7 +1729,6 @@ class IntegracionController extends Controller{
                     return $this->sendRequest(500, "error", "Ha ocurrido un error en el servidor al procesar la solicitud", [$error], []);
                 }
 
-
                 try {
                     $asignarBD = Yii::$app->bermann->asignarBD($_subdominio);
                     if(!$asignarBD->asignada){
@@ -1746,21 +1745,20 @@ class IntegracionController extends Controller{
                     $viajePod = ViajePod::find()->where(["viaje_id" => $viajeID])->one();
     
                     if(!$viajePod){
-                        $viajePod->viaje_id = $viajeID;
-                        $viajePod->estatus_pod_id =  5;
-                        $viajePod->nombre_firma = $_nombreFirma;
-                        $viajePod->rut_firma = $_rutFirma;
-                        $viajePod->empresa_firma = $_empresaFirma;
-                        $viajePod->fecha_creado =  date("Y-m-d H:i:s");
-                        if(!$viajePod->save()){
+                        $viajePodNuevo = new ViajePod();
+                        $viajePodNuevo->viaje_id = $viajeID;
+                        $viajePodNuevo->estatus_pod_id =  5;
+                        $viajePodNuevo->nombre_firma = $_nombreFirma;
+                        $viajePodNuevo->rut_firma = $_rutFirma;
+                        $viajePodNuevo->empresa_firma = $_empresaFirma;
+                        $viajePodNuevo->fecha_creado =  date("Y-m-d H:i:s");
+                        if(!$viajePodNuevo->save()){
                             $transaction->rollback();
                             $error = "Ha ocurrido un error al guardar POD";
                             return $this->sendRequest(400, "error", $error, [$error], []);
                         }
                     }
 
-                    // se crear la instancia para guardar en el s3 de spaces
-                    $client = Yii::$app->bermann->setSpaces();
                     
                     //  validar fotos
                         $i = 0;
@@ -1902,6 +1900,7 @@ class IntegracionController extends Controller{
                             $pod->empresa_firma = $viajePod->empresa_firma;
                             $pod->fecha_creacion = $viajePod->fecha_creado;
 
+                            
                             $listaPod = [];
                             foreach ($viajePodDetalle as $kvpd => $vvpd) {
                                 $podDetalle = new stdClass();
