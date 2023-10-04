@@ -1741,30 +1741,23 @@ class IntegracionController extends Controller{
                     $transaction = $db->beginTransaction();
                     
                     $viajeID = $_idViaje;
-    
-                    $viajePod = ViajePod::find()->where(["viaje_id" => $viajeID])->one();
                     
+                    //se crea el POD                    
                     $viajePodId = 0;
-                    //si no existe, se crea la cabecera del POD
-                    if(!$viajePod){
-                        $viajePodNuevo = new ViajePod();
-                        $viajePodNuevo->viaje_id = $viajeID;
-                        $viajePodNuevo->estatus_pod_id =  5;
-                        $viajePodNuevo->nombre_firma = $_nombreFirma;
-                        $viajePodNuevo->rut_firma = $_rutFirma;
-                        $viajePodNuevo->empresa_firma = $_empresaFirma;
-                        $viajePodNuevo->fecha_creado =  date("Y-m-d H:i:s");
-                        if(!$viajePodNuevo->save()){
-                            $transaction->rollback();
-                            $error = "Ha ocurrido un error al guardar POD";
-                            return $this->sendRequest(400, "error", $error, [$error], []);
-                        }
-                        $viajePodId = $viajePodNuevo->id;
-                    }else{
-                        $viajePodId = $viajePod->id;
+                    $viajePodNuevo = new ViajePod();
+                    $viajePodNuevo->viaje_id = $viajeID;
+                    $viajePodNuevo->estatus_pod_id =  5;
+                    $viajePodNuevo->nombre_firma = $_nombreFirma;
+                    $viajePodNuevo->rut_firma = $_rutFirma;
+                    $viajePodNuevo->empresa_firma = $_empresaFirma;
+                    $viajePodNuevo->fecha_creado =  date("Y-m-d H:i:s");
+                    if(!$viajePodNuevo->save()){
+                        $transaction->rollback();
+                        $error = "Ha ocurrido un error al guardar POD";
+                        return $this->sendRequest(400, "error", $error, [$error], []);
                     }
+                    $viajePodId = $viajePodNuevo->id;
 
-                    
                     //  validar fotos
                         $i = 0;
                         foreach ($_fotos as $fp => $foto) {
