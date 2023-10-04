@@ -1886,20 +1886,22 @@ class IntegracionController extends Controller{
                         $viajePod = ViajePod::find()->where(["viaje_id" => $viaje->id])->all();
 
                         if(count($viajePod) > 0){
+                            $pod = new stdClass();
+                            
+                            $pod->viaje_id = $viaje->id;
+                            
+                            $pod->hr = "";
+                            if(isset($viaje->hojaRuta)){
+                                $pod->hr = $viaje->hojaRuta->nro_hr;
+                            }
+                            
                             $listaPod = [];
                             foreach ($viajePod as $kvp => $vvp) {
-                                $pod = new stdClass();
-                                $pod->viaje_id = $vvp->viaje_id;
-
-                                $pod->hr = "";
-                                if(isset($viaje->hojaRuta)){
-                                    $pod->hr = $viaje->hojaRuta->nro_hr;
-                                }
-
-                                $pod->estatus_pod = $vvp->estatusPod->nombre;
-                                $pod->nombre_firma = $vvp->nombre_firma;
-                                $pod->rut_firma = $vvp->rut_firma;
-                                $pod->empresa_firma = $vvp->empresa_firma;
+                                $podCabecera = new stdClass();
+                                $podCabecera->estatus_pod = $vvp->estatusPod->nombre;
+                                $podCabecera->nombre_firma = $vvp->nombre_firma;
+                                $podCabecera->rut_firma = $vvp->rut_firma;
+                                $podCabecera->empresa_firma = $vvp->empresa_firma;
 
                                 $viajePodDetalle = ViajePodDetalle::find()->where(["viaje_pod_id" => $vvp->id])->all();
 
@@ -1931,12 +1933,15 @@ class IntegracionController extends Controller{
                                     $arrViajePodDetalle[] = $podDetalle;
                                 }
 
-                                $pod->detalle_pod = $arrViajePodDetalle;
+                                $podCabecera->detalle_pod = $arrViajePodDetalle;
                             
-                                $listaPod[] = $pod;
+                                $listaPod[] = $podCabecera;
                             }
 
-                            return $this->sendRequest(200, "ok", "Datos entregados", [], $listaPod);
+                            $pod->pod = $listaPod;
+
+                            return $this->sendRequest(200, "ok", "Datos entregados", [], $pod);
+                            
 
                         }else{
                             $error = "No existen pod asociadas a este viaje";
