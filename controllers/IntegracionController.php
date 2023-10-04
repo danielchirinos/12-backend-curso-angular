@@ -1883,55 +1883,56 @@ class IntegracionController extends Controller{
                     
                     if($viaje){
                         
-                        $viajePod = ViajePod::find()->where(["viaje_id" => $viaje->id])->one();
-                        
-                        if($viajePod){
-                            
-                            $viajePodDetalle = ViajePodDetalle::find()->where(["viaje_pod_id" => $viajePod->id])->all();
+                        $viajePod = ViajePod::find()->where(["viaje_id" => $viaje->id])->all();
 
-                            $pod = new stdClass();
-                            $pod->viaje_id = $viajePod->viaje_id;
-                            $pod->estatus_pod = $viajePod->estatusPod->nombre;
-                            $pod->nombre_firma = $viajePod->nombre_firma;
-                            $pod->rut_firma = $viajePod->rut_firma;
-                            $pod->empresa_firma = $viajePod->empresa_firma;
-                            $pod->fecha_creacion = $viajePod->fecha_creado;
-
-                            
+                        if(count($viajePod) > 0){
                             $listaPod = [];
-                            foreach ($viajePodDetalle as $kvpd => $vvpd) {
-                                $podDetalle = new stdClass();
-                                $podDetalle->id = $vvpd->id;
-                                $podDetalle->viaje_id = $viaje->id;
-                                $podDetalle->hr = $viaje->hojaRuta->nro_hr;
-                                $podDetalle->viaje_detalle_id = $vvpd->viaje_detalle_id;
-                                $podDetalle->zona = $vvpd->viajeDetalle->zona->nombre;
+                            foreach ($viajePod as $kvp => $vvp) {
+                                $pod = new stdClass();
+                                $pod->estatus_pod = $vvp->estatusPod->nombre;
+                                $pod->nombre_firma = $vvp->nombre_firma;
+                                $pod->rut_firma = $vvp->rut_firma;
+                                $pod->empresa_firma = $vvp->empresa_firma;
 
-                                $ubicacion = "pod/".$viaje->id."/";
-                                $imagen = json_decode(Yii::$app->bermann->getImagenSpaces($vvpd->foto, $_subdominio, $ubicacion));
+                                $viajePodDetalle = ViajePodDetalle::find()->where(["viaje_pod_id" => $vvp->id])->all();
 
-                                if($imagen->codigo == 0){
-                                    $error = "Ha ocurrido un error al mostrar una imagen del detalle de POD";
-                                    return $this->sendRequest(400, "error", $error, [$error], []);
-                                }
+                                $arrViajePodDetalle = [];
+                                foreach ($viajePodDetalle as $kvpd => $vvpd) {
+                                    $podDetalle = new stdClass();
+                                    $podDetalle->id = $vvpd->id;
+                                    $podDetalle->viaje_id = $viaje->id;
+                                    $podDetalle->hr = $viaje->hojaRuta->nro_hr;
+                                    $podDetalle->viaje_detalle_id = $vvpd->viaje_detalle_id;
+                                    $podDetalle->zona = $vvpd->viajeDetalle->zona->nombre;
+    
+                                    $ubicacion = "pod/".$viaje->id."/";
+                                    $imagen = json_decode(Yii::$app->bermann->getImagenSpaces($vvpd->foto, $_subdominio, $ubicacion));
+    
+                                    if($imagen->codigo == 0){
+                                        $error = "Ha ocurrido un error al mostrar una imagen del detalle de POD";
+                                        return $this->sendRequest(400, "error", $error, [$error], []);
+                                    }
+                                    
+                                    $podDetalle->imagen = $imagen->url;
+                                    $podDetalle->observacion = $vvpd->observacion;
+                                    $podDetalle->validado = $vvpd->validado;
+    
+                                    $podDetalle->tipo_documento_pod = "sin asignar";
+                                    if(isset($vvpd->tipoDocumentoPod)){
+                                        $podDetalle->tipo_documento_pod = $vvpd->tipoDocumentoPod->nombre;
+    
+                                    }
+                                    $podDetalle->estatus_pod = $vvpd->estatusPod->nombre;
                                 
-                                $podDetalle->imagen = $imagen->url;
-                                $podDetalle->observacion = $vvpd->observacion;
-                                $podDetalle->validado = $vvpd->validado;
-
-                                $podDetalle->tipo_documento_pod = "sin asignar";
-                                if(isset($vvpd->tipoDocumentoPod)){
-                                    $podDetalle->tipo_documento_pod = $vvpd->tipoDocumentoPod->nombre;
-
+                                    $arrViajePodDetalle[] = $podDetalle;
                                 }
-                                $podDetalle->estatus_pod = $vvpd->estatusPod->nombre;
+
+                                $pod->detalle_pod = $arrViajePodDetalle;
                             
-                                $listaPod[] = $podDetalle;
+                                $listaPod[] = $pod;
                             }
 
-                            $pod->detalle_pod = $listaPod;
-
-                            return $this->sendRequest(200, "ok", "Datos entregados", [], $pod);
+                            return $this->sendRequest(200, "ok", "Datos entregados", [], $listaPod);
 
                         }else{
                             $error = "No existen pod asociadas a este viaje";
