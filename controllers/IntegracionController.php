@@ -1889,6 +1889,13 @@ class IntegracionController extends Controller{
                             $listaPod = [];
                             foreach ($viajePod as $kvp => $vvp) {
                                 $pod = new stdClass();
+                                $pod->viaje_id = $vvp->viaje_id;
+
+                                $pod->hr = "";
+                                if(isset($viaje->hojaRuta)){
+                                    $pod->hr = $viaje->hojaRuta->nro_hr;
+                                }
+
                                 $pod->estatus_pod = $vvp->estatusPod->nombre;
                                 $pod->nombre_firma = $vvp->nombre_firma;
                                 $pod->rut_firma = $vvp->rut_firma;
@@ -1900,8 +1907,6 @@ class IntegracionController extends Controller{
                                 foreach ($viajePodDetalle as $kvpd => $vvpd) {
                                     $podDetalle = new stdClass();
                                     $podDetalle->id = $vvpd->id;
-                                    $podDetalle->viaje_id = $viaje->id;
-                                    $podDetalle->hr = $viaje->hojaRuta->nro_hr;
                                     $podDetalle->viaje_detalle_id = $vvpd->viaje_detalle_id;
                                     $podDetalle->zona = $vvpd->viajeDetalle->zona->nombre;
     
@@ -1922,7 +1927,6 @@ class IntegracionController extends Controller{
                                         $podDetalle->tipo_documento_pod = $vvpd->tipoDocumentoPod->nombre;
     
                                     }
-                                    $podDetalle->estatus_pod = $vvpd->estatusPod->nombre;
                                 
                                     $arrViajePodDetalle[] = $podDetalle;
                                 }
