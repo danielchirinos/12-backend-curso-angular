@@ -1619,7 +1619,7 @@ class IntegracionController extends Controller{
     
                     $respuesta = new stdClass();
                             
-                    $estatusPOD  = EstatusPod::find()->all();
+                    $estatusPOD  = EstatusPod::find()->where(["tipo" => 1])->all();
     
                     if(count($estatusPOD) > 0){
     
