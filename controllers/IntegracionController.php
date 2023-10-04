@@ -1808,10 +1808,8 @@ class IntegracionController extends Controller{
                             }
                             
                             //se guarda el nombre de la imagen
-    
                             $i++;
                         }
-    
                     // fin validar fotos
 
 
