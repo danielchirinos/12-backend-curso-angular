@@ -149,8 +149,8 @@ class IntegracionController extends Controller{
                             return $this->sendRequest(400, "error", $error, [$error], []);
                         }else{
 
-                            $token = $this->getToken(60); //crea un token con 1 hora de vigencia
-                            $tokenRefresh = $this->getToken(500); //crea un token con 5 hora de vigencia
+                            $token = $this->getToken(1); //crea un token con 1 hora de vigencia
+                            $tokenRefresh = $this->getToken(2); //crea un token con 5 hora de vigencia
 
                             if ($token) {
                                 if($model->foto == null){
