@@ -2285,7 +2285,7 @@ class IntegracionController extends Controller{
                                     foreach ($fotos as $kf => $vf) {
                                         if($vf != ""){
                                             $ubicacion = "novedades/".$viaje->id."/";
-                                            $imagen = json_decode(Yii::$app->bermann->getImagenSpaces($vf, $_subdominio, "novedades/"));
+                                            $imagen = json_decode(Yii::$app->bermann->getImagenSpaces($vf, $_subdominio, $ubicacion));
 
                                             if($imagen->codigo == 0){
                                                 $error = "Ha ocurrido un error al mostrar una imagen de novedad";
