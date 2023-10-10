@@ -2063,7 +2063,7 @@ class IntegracionController extends Controller{
                                 //se guarda la iamgen en el directorio correspondiente
                                 if (imagepng($foto, Yii::getAlias(Yii::getAlias('@webroot/images/').$nombrefoto, 9))) {
 
-                                    $ubicacion = "novedades/". $viajeID."/";
+                                    $ubicacion = "novedades/". $_viajeId."/";
                                     if(!Yii::$app->bermann->saveImagenSpaces($nombrefoto, $_subdominio, $ubicacion)){
                                         $transaction->rollback();
                                         $error = "Ha ocurrido un error al guardar la imagen de la Novedad";
