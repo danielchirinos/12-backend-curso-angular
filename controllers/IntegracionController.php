@@ -2284,6 +2284,7 @@ class IntegracionController extends Controller{
                                     
                                     foreach ($fotos as $kf => $vf) {
                                         if($vf != ""){
+                                            $ubicacion = "novedades/".$viaje->id."/";
                                             $imagen = json_decode(Yii::$app->bermann->getImagenSpaces($vf, $_subdominio, "novedades/"));
 
                                             if($imagen->codigo == 0){
