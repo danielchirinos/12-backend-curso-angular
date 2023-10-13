@@ -49,7 +49,16 @@ class UsuarioController extends Controller{
             $this->cabecerasPOST();
 
             date_default_timezone_set("America/Santiago");
-            // $key = $this->validarKey(getallheaders()["Autorizacion"]);
+
+            if (isset(getallheaders()["Authorization"])) {
+                $token = getallheaders()["Authorization"];
+                $decodeToken = $this->decodeToken($token);
+                if($decodeToken->estado != "ok"){
+                    return $this->sendRequest(401, "error", "Token Vencido", ["token vencido"], []);
+                }
+            }else{
+                return $this->sendRequest(401, "error", "Token Invalido", ["token invalido"], []);
+            }
 
             $respuesta = new stdClass();
             // if ($key != null) {
@@ -96,14 +105,21 @@ class UsuarioController extends Controller{
             $user->role_id = $_roleId;
             $user->email = $_email;
             $user->name = $_name;
-            $user->password = $_password;
+
+            $optionsBcrypt = ['cost' => 10]; 
+            $user->password = password_hash($_password, PASSWORD_BCRYPT, $optionsBcrypt);
             $user->is_active = $_isActive;
 
             if($user->save()){
-                return $this->sendRequest(200, "OK", "Usuario creado con éxito", [], $user->id);
+                return $this->sendRequest(200, "ok", "Usuario creado con éxito", [], $user->id);
             }else{
-                $error = "Ocurrio un error al crear el usaurio";
-                return $this->sendRequest(400, "error", $error, [$error], []);
+                $erroresModel = [];
+                foreach ($user->getErrors() as $key => $value) {
+                    $erroresModel[] = $value[0];
+                    break;
+                }
+                $error = "Ocurrio un error al crear el usuario";
+                return $this->sendRequest(400, "error", $error, $erroresModel, []);
             }
         }catch (\Throwable $th) {
             $error = $th->getMessage();
@@ -118,10 +134,10 @@ class UsuarioController extends Controller{
                 $this->cabecerasPOST();
 
                 date_default_timezone_set("America/Santiago");
-                $key = $this->validarKey(getallheaders()["Autorizacion"]);
+                // $key = $this->validarKey(getallheaders()["Autorizacion"]);
 
                 $respuesta = new stdClass();
-                if ($key != null) {
+                // if ($key != null) {
 
                     if ($_POST) {
                         $error = "Servicio Innacceible";
@@ -131,82 +147,54 @@ class UsuarioController extends Controller{
                         $post = file_get_contents('php://input');
                         $data = json_decode($post);
             
-                        $_usuario = isset($data->usuario) ? $data->usuario : null;
-                        $_clave = isset($data->clave) ? $data->clave : null;
-                        $_subdominio = isset($data->subdominio) ? $data->subdominio : null;
-                    
+                        $_email = isset($data->email) ? $data->email : null;
+                        $_password = isset($data->password) ? $data->password : null;
                     }
 
                     $errores = [];
 
-                    if (!isset($_usuario) || $_usuario =="" || $_usuario == null) {
-                        $errores[] = 'El usuario es requerido';
+                    if (!isset($_email) || $_email =="" || $_email == null) {
+                        $errores[] = 'El email es requerido';
                     }
-                    if (!isset($_clave) || $_clave =="" || $_clave == null) {
-                        $errores[] = 'El clave es requerido';
-                    }
-                    if (!isset($_subdominio) || $_subdominio == "" || $_subdominio == null) {
-                        $errores[] = 'El subdominio es requerido';
+                    if (!isset($_password) || $_password =="" || $_password == null) {
+                        $errores[] = 'El password es requerido';
                     }
             
                     if (count($errores) > 0) {
                         return $this->sendRequest(400, "error", "Campos Requeridos",  $errores, []);
-                    }  
-
-                    $asignarBD = Yii::$app->bermann->asignarBD($_subdominio);
-                    if(!$asignarBD->asignada){
-                        $error = "Subdominio invalido";
-                        return $this->sendRequest(400, "error", $error, [$error], []);
                     }
-
                     
-                    $model = Conductores::find()->where(['UPPER(usuario)' => mb_strtoupper($_usuario, "UTF-8")])->orWhere(["telefono" => mb_strtoupper($_usuario, "UTF-8")])->andWhere(['UPPER(clave)'=> mb_strtoupper($_clave, "UTF-8")])->one();
+                    $user = User::find()->where(['email' => $_email])->one();
 
-                    if ($model != NULL) {
-                        if ($model->estado_conductor == 0) {
-                            $error = "Conductor inactivo para aplicación movil";
-                            return $this->sendRequest(400, "error", $error, [$error], []);
-                        }else{
+                    if(!$user){
+                        $error = "No existen usuarios con los datos ingresados";
+                        return $this->sendRequest(401, "error", $error, [$error], []);
+                    }
+                    if($user->is_active == 0){
+                        $error = "Usuario Inactivo";
+                        return $this->sendRequest(400, "error", $error,  [$error], []);
+                    }
 
-                            $token = $this->getToken(1); //crea un token con 1 hora de vigencia
-                            $tokenRefresh = $this->getToken(2); //crea un token con 5 hora de vigencia
-
-                            if ($token) {
-                                if($model->foto == null){
-                                    $imagen = '/images/icon_user.svg';
-                                }else{
-                                    $imagen = "{$asignarBD->urlRecursosExternos}/images/conductores/{$model->foto}";     
-                                }
-
-                                $data = [
-                                    "id_conductor" => $model->id,
-                                    "nombre_conductor" => $model->nombre,
-                                    "imagen" => $imagen,
-                                    "email" => $model->email == null ? "" : $model->email,
-                                    "telefono" => $model->telefono == null ? "" : $model->telefono,
-                                    "token" => $token["token"],
-                                    // "token_exp" => $token["exp"],
-                                    "token_refresh" => $tokenRefresh["token"],
-                                    // "token_refresh_exp" => $tokenRefresh["exp"],
-                                ];
-
-                                return $this->sendRequest(200, "OK", "Datos entregados", [], $data);
-                                
-                            }else{
-                                $error = "Ocurrio un error al validar el token";
-                                return $this->sendRequest(400, "error", $error, [$error], []);
-                            }
-                        }
-                    }else{
-                        $error = "No existen conductores con los datos ingresados";
-                        return $this->sendRequest(400, "error", $error, [$error], []);
+                    if (!password_verify($_password, $user->password)) {
+                        $error = "Clave invalida";
+                        return $this->sendRequest(401, "error", $error,  [$error], []);
                     }
 
 
-                }else{
-                    $error = "API_KEY invalida";
-                    return $this->sendRequest(400, "error", $error, [$error], []);
-                }
+                    $token = $this->getToken(60); //crea un token con 1 hora de vigencia
+                    $tokenRefresh = $this->getToken(300); //crea un token con 5 hora de vigencia
+
+                    $res["user"] = [
+                        "user_id" => $user->id,
+                        "name" => $user->name,
+                        "email" => $user->email,
+                        "token" => $token["token"],
+                        "token_refresh" => $tokenRefresh["token"],
+                    ];
+
+
+                    return $this->sendRequest(200, "ok", "Login exitoso", [], $res);
+
             } catch (\Throwable $th) {
                 $error = $th->getMessage();
                 return $this->sendRequest(500, "error", "Ha ocurrido un error en el servidor al procesar la solicitud", [$error], []);
@@ -239,7 +227,7 @@ class UsuarioController extends Controller{
                         "token_refresh" => $tokenRefresh["token"],
                     ];
 
-                    return $this->sendRequest(200, "OK", "Datos entregados", [], $data);
+                    return $this->sendRequest(200, "ok", "Datos entregados", [], $data);
                     
                 }else{
                     $error = "Ocurrio un error al actualizar los token";
@@ -303,15 +291,22 @@ class UsuarioController extends Controller{
                 $bearerToken = str_replace("Bearer ", "", $token);
                 $tokenDecode = JWT::decode($bearerToken, $this->key, ["HS512"]);
 
-                if(time() > $tokenDecode->exp){
+                if(!isset($tokenDecode->exp)){
                     $respuesta->estado = "error";
-                    $respuesta->respuesta = "token vencido";
+                    $respuesta->respuesta = "token invalido";
                     $respuesta->mensaje = [];
                 }else{
-                    $respuesta->estado = "ok";
-                    $respuesta->respuesta = "token vigente";
-                    $respuesta->mensaje = [];
+                    if(time() > $tokenDecode->exp){
+                        $respuesta->estado = "error";
+                        $respuesta->respuesta = "token vencido";
+                        $respuesta->mensaje = [];
+                    }else{
+                        $respuesta->estado = "ok";
+                        $respuesta->respuesta = "token vigente";
+                        $respuesta->mensaje = [];
+                    }
                 }
+
     
                 return $respuesta;
                 

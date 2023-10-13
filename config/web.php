@@ -2,8 +2,6 @@
 
 $params = require __DIR__ . '/params.php';
 $db = require __DIR__ . '/db.php';
-$db_interandinos_pre = require __DIR__ . '/dbs/db_interandinos_pre.php';
-$db_interandinos_qa = require __DIR__ . '/dbs/db_interandinos_qa.php';
 
 $config = [
     'id' => 'tms',
@@ -17,12 +15,12 @@ $config = [
         '@npm'   => '@vendor/npm-asset',
     ],
     'components' => [
-        'bermann' => [
-            'class' => 'app\components\Bermann',
-        ],
+        // 'bermann' => [
+        //     'class' => 'app\components\Bermann',
+        // ],
         'request' => [
             // !!! insert a secret key in the following (if it is empty) - this is required by cookie validation
-            'cookieValidationKey' => 'xv',
+            'cookieValidationKey' => 'x',
         ],
         'cache' => [
             'class' => 'yii\caching\FileCache',
@@ -34,11 +32,11 @@ $config = [
         'errorHandler' => [
             'errorAction' => 'site/error',
         ],
-        'mailer' => [
-            'class' => 'nickcv\mandrill\Mailer',
-            'apikey' => 'VZGIZtJgNDeaFAac41t-vQ',
+        // 'mailer' => [
+        //     'class' => 'nickcv\mandrill\Mailer',
+        //     'apikey' => 'VZGIZtJgNDeaFAac41t-vQ',
 
-        ],
+        // ],
         'log' => [
             'traceLevel' => YII_DEBUG ? 3 : 0,
             'targets' => [
@@ -49,8 +47,6 @@ $config = [
             ],
         ],
         'db' => $db,
-        "db_interandinos_pre" => $db_interandinos_pre,
-        "db_interandinos_qa" => $db_interandinos_qa,
         'urlManager' => [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
