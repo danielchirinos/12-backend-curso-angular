@@ -34,7 +34,7 @@ $config = [
         ],
         // 'mailer' => [
         //     'class' => 'nickcv\mandrill\Mailer',
-        //     'apikey' => 'VZGIZtJgNDeaFAac41t-vQ',
+        //     'apikey' => '123321',
 
         // ],
         'log' => [
